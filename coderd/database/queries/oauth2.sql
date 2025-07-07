@@ -129,6 +129,11 @@ SELECT * FROM oauth2_provider_app_codes WHERE id = $1;
 -- name: GetOAuth2ProviderAppCodeByPrefix :one
 SELECT * FROM oauth2_provider_app_codes WHERE secret_prefix = $1;
 
+-- name: ConsumeOAuth2ProviderAppCodeByPrefix :one
+DELETE FROM oauth2_provider_app_codes
+WHERE secret_prefix = $1 AND expires_at > NOW()
+RETURNING *;
+
 -- name: InsertOAuth2ProviderAppCode :one
 INSERT INTO oauth2_provider_app_codes (
     id,
@@ -282,6 +287,11 @@ INSERT INTO oauth2_provider_device_codes (
 -- name: GetOAuth2ProviderDeviceCodeByPrefix :one
 SELECT * FROM oauth2_provider_device_codes WHERE device_code_prefix = $1;
 
+-- name: ConsumeOAuth2ProviderDeviceCodeByPrefix :one
+DELETE FROM oauth2_provider_device_codes
+WHERE device_code_prefix = $1 AND expires_at > NOW() AND status = 'authorized'
+RETURNING *;
+
 -- name: GetOAuth2ProviderDeviceCodeByUserCode :one
 SELECT * FROM oauth2_provider_device_codes WHERE user_code = $1;
 
@@ -292,7 +302,8 @@ SELECT * FROM oauth2_provider_device_codes WHERE id = $1;
 UPDATE oauth2_provider_device_codes SET
     user_id = $2,
     status = $3
-WHERE id = $1 AND status = 'pending' RETURNING *;
+WHERE id = $1 AND status = 'pending'
+RETURNING *;
 
 -- name: DeleteOAuth2ProviderDeviceCodeByID :exec
 DELETE FROM oauth2_provider_device_codes WHERE id = $1;
