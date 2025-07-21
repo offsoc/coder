@@ -59,7 +59,6 @@ type agentAttributes struct {
 	MOTDFile                 string                       `mapstructure:"motd_file"`
 	Metadata                 []agentMetadata              `mapstructure:"metadata"`
 	DisplayApps              []agentDisplayAppsAttributes `mapstructure:"display_apps"`
-	WorkspaceApps            []string                     `mapstructure:"workspace_apps"`
 	Order                    int64                        `mapstructure:"order"`
 	ResourcesMonitoring      []agentResourcesMonitoring   `mapstructure:"resources_monitoring"`
 }
@@ -349,7 +348,6 @@ func ConvertState(ctx context.Context, modules []*tfjson.StateModule, rawGraph s
 				ResourcesMonitoring:      resourcesMonitoring,
 				Metadata:                 metadata,
 				DisplayApps:              displayApps,
-				WorkspaceApps:            attrs.WorkspaceApps,
 				Order:                    attrs.Order,
 				ApiKeyScope:              attrs.APIKeyScope,
 			}

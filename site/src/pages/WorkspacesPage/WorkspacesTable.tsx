@@ -718,165 +718,88 @@ const WorkspaceApps: FC<WorkspaceAppsProps> = ({ workspace }) => {
 		return null;
 	}
 
-	// Check if workspace_apps is configured via terraform
-	// Note: This field is only available if the template uses the workspace_apps configuration
-	// TODO: Update WorkspaceAgent type to include workspace_apps field
-	const configuredApps = (
-		agent as WorkspaceAgent & { workspace_apps?: string[] }
-	).workspace_apps;
 	const buttons: ReactNode[] = [];
 
-	// Use configured apps if available, otherwise fall back to default behavior
-	if (configuredApps && configuredApps.length > 0) {
-		// Use the configured apps list
-		for (const appId of configuredApps.slice(0, WORKSPACE_APPS_SLOTS)) {
-			if (appId === "vscode") {
-				buttons.push(
-					<BaseIconLink
-						key="vscode"
-						isLoading={!token}
-						label="Open VS Code in Browser"
-						href={getVSCodeHref("vscode", {
-							owner: workspace.owner_name,
-							workspace: workspace.name,
-							agent: agent.name,
-							token: token ?? "",
-							folder: agent.expanded_directory,
-						})}
-					>
-						<VSCodeIcon />
-					</BaseIconLink>,
-				);
-			} else if (appId === "vscode_insiders") {
-				buttons.push(
-					<BaseIconLink
-						key="vscode-insiders"
-						label="Open VS Code Insiders in Browser"
-						isLoading={!token}
-						href={getVSCodeHref("vscode-insiders", {
-							owner: workspace.owner_name,
-							workspace: workspace.name,
-							agent: agent.name,
-							token: token ?? "",
-							folder: agent.expanded_directory,
-						})}
-					>
-						<VSCodeInsidersIcon />
-					</BaseIconLink>,
-				);
-			} else if (appId === "web_terminal") {
-				buttons.push(
-					<BaseIconLink
-						key="terminal"
-						isLoading={!token}
-						label="Open Terminal"
-						href={getTerminalHref({
-							username: workspace.owner_name,
-							workspace: workspace.name,
-							agent: agent.name,
-						})}
-					>
-						<SquareTerminalIcon />
-					</BaseIconLink>,
-				);
-			} else {
-				// Check if it's a user app
-				const app = agent.apps.find((a) => a.slug === appId || a.id === appId);
-				if (app && app.health === "healthy" && !app.hidden) {
-					buttons.push(
-						<IconAppLink
-							key={app.id}
-							app={app}
-							workspace={workspace}
-							agent={agent}
-						/>,
-					);
-				}
-			}
-		}
-	} else {
-		// Fall back to the original behavior
-		const builtinApps = new Set(agent.display_apps);
-		builtinApps.delete("port_forwarding_helper");
-		builtinApps.delete("ssh_helper");
+	// Use display_apps to determine built-in apps, then fill remaining slots with user apps sorted by order
+	const builtinApps = new Set(agent.display_apps);
+	builtinApps.delete("port_forwarding_helper");
+	builtinApps.delete("ssh_helper");
 
-		const remainingSlots = WORKSPACE_APPS_SLOTS - builtinApps.size;
-		const userApps = agent.apps
-			.filter((app) => app.health === "healthy" && !app.hidden)
-			.slice(0, remainingSlots);
+	const remainingSlots = WORKSPACE_APPS_SLOTS - builtinApps.size;
+	const userApps = agent.apps
+		.filter((app) => app.health === "healthy" && !app.hidden)
+		.sort((a, b) => a.order - b.order)
+		.slice(0, remainingSlots);
 
-		if (builtinApps.has("vscode")) {
-			buttons.push(
-				<BaseIconLink
-					key="vscode"
-					isLoading={!token}
-					label="Open VS Code in Browser"
-					href={getVSCodeHref("vscode", {
-						owner: workspace.owner_name,
-						workspace: workspace.name,
-						agent: agent.name,
-						token: token ?? "",
-						folder: agent.expanded_directory,
-					})}
-				>
-					<VSCodeIcon />
-				</BaseIconLink>,
-			);
-		}
+	if (builtinApps.has("vscode")) {
+		buttons.push(
+			<BaseIconLink
+				key="vscode"
+				isLoading={!token}
+				label="Open VS Code in Browser"
+				href={getVSCodeHref("vscode", {
+					owner: workspace.owner_name,
+					workspace: workspace.name,
+					agent: agent.name,
+					token: token ?? "",
+					folder: agent.expanded_directory,
+				})}
+			>
+				<VSCodeIcon />
+			</BaseIconLink>,
+		);
+	}
 
-		if (builtinApps.has("vscode_insiders")) {
-			buttons.push(
-				<BaseIconLink
-					key="vscode-insiders"
-					label="Open VS Code Insiders in Browser"
-					isLoading={!token}
-					href={getVSCodeHref("vscode-insiders", {
-						owner: workspace.owner_name,
-						workspace: workspace.name,
-						agent: agent.name,
-						token: token ?? "",
-						folder: agent.expanded_directory,
-					})}
-				>
-					<VSCodeInsidersIcon />
-				</BaseIconLink>,
-			);
-		}
+	if (builtinApps.has("vscode_insiders")) {
+		buttons.push(
+			<BaseIconLink
+				key="vscode-insiders"
+				label="Open VS Code Insiders in Browser"
+				isLoading={!token}
+				href={getVSCodeHref("vscode-insiders", {
+					owner: workspace.owner_name,
+					workspace: workspace.name,
+					agent: agent.name,
+					token: token ?? "",
+					folder: agent.expanded_directory,
+				})}
+			>
+				<VSCodeInsidersIcon />
+			</BaseIconLink>,
+		);
+	}
 
-		for (const app of userApps) {
-			buttons.push(
-				<IconAppLink
-					key={app.id}
-					app={app}
-					workspace={workspace}
-					agent={agent}
-				/>,
-			);
-		}
+	for (const app of userApps) {
+		buttons.push(
+			<IconAppLink
+				key={app.id}
+				app={app}
+				workspace={workspace}
+				agent={agent}
+			/>,
+		);
+	}
 
-		if (builtinApps.has("web_terminal")) {
-			const href = getTerminalHref({
-				username: workspace.owner_name,
-				workspace: workspace.name,
-				agent: agent.name,
-			});
-			buttons.push(
-				<BaseIconLink
-					key="terminal"
-					href={href}
-					onClick={(e) => {
-						e.preventDefault();
-						openAppInNewWindow(href);
-					}}
-					label="Open Terminal"
-				>
-					<SquareTerminalIcon />
-				</BaseIconLink>,
-			);
-		}
-	} // Close the else block for fallback behavior
-
-	buttons.push();
+	if (builtinApps.has("web_terminal")) {
+		const href = getTerminalHref({
+			username: workspace.owner_name,
+			workspace: workspace.name,
+			agent: agent.name,
+		});
+		buttons.push(
+			<BaseIconLink
+				key="terminal"
+				href={href}
+				onClick={(e) => {
+					e.preventDefault();
+					openAppInNewWindow(href);
+				}}
+				label="Open Terminal"
+			>
+				<SquareTerminalIcon />
+			</BaseIconLink>,
+		);
+	}
 
 	return buttons;
 };
