@@ -80,12 +80,20 @@ func TestWorkspaceAgent(t *testing.T) {
 		}).Do()
 
 		inv, _ := clitest.New(t, "agent", "--auth", "azure-instance-identity", "--agent-url", client.URL.String())
+		ctx := inv.Context()
 		inv = inv.WithContext(
 			//nolint:revive,staticcheck
-			context.WithValue(inv.Context(), "azure-client", metadataClient),
+			context.WithValue(ctx, "azure-client", metadataClient),
 		)
 
-		ctx := inv.Context()
+		// Ensure the workspace build resources are queryable before starting the agent.
+		// This prevents a race condition where the agent tries to authenticate before
+		// the provisioner has inserted the agent records.
+		ws, err := client.Workspace(ctx, r.Workspace.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, ws.LatestBuild.Resources, "workspace resources should be available")
+		require.NotEmpty(t, ws.LatestBuild.Resources[0].Agents, "workspace agents should be available")
+
 		clitest.Start(t, inv)
 		coderdtest.NewWorkspaceAgentWaiter(t, client, r.Workspace.ID).
 			MatchResources(matchAgentWithVersion).Wait()
@@ -119,13 +127,21 @@ func TestWorkspaceAgent(t *testing.T) {
 		}).Do()
 
 		inv, _ := clitest.New(t, "agent", "--auth", "aws-instance-identity", "--agent-url", client.URL.String())
+		ctx := inv.Context()
 		inv = inv.WithContext(
 			//nolint:revive,staticcheck
-			context.WithValue(inv.Context(), "aws-client", metadataClient),
+			context.WithValue(ctx, "aws-client", metadataClient),
 		)
 
+		// Ensure the workspace build resources are queryable before starting the agent.
+		// This prevents a race condition where the agent tries to authenticate before
+		// the provisioner has inserted the agent records.
+		ws, err := client.Workspace(ctx, r.Workspace.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, ws.LatestBuild.Resources, "workspace resources should be available")
+		require.NotEmpty(t, ws.LatestBuild.Resources[0].Agents, "workspace agents should be available")
+
 		clitest.Start(t, inv)
-		ctx := inv.Context()
 		coderdtest.NewWorkspaceAgentWaiter(t, client, r.Workspace.ID).
 			MatchResources(matchAgentWithVersion).
 			Wait()
@@ -162,14 +178,21 @@ func TestWorkspaceAgent(t *testing.T) {
 		inv, cfg := clitest.New(t, "agent", "--auth", "google-instance-identity", "--agent-url", client.URL.String())
 		clitest.SetupConfig(t, member, cfg)
 
+		// Ensure the workspace build resources are queryable before starting the agent.
+		// This prevents a race condition where the agent tries to authenticate before
+		// the provisioner has inserted the agent records.
+		ctx := inv.Context()
+		ws, err := client.Workspace(ctx, r.Workspace.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, ws.LatestBuild.Resources, "workspace resources should be available")
+		require.NotEmpty(t, ws.LatestBuild.Resources[0].Agents, "workspace agents should be available")
+
 		clitest.Start(t,
 			inv.WithContext(
 				//nolint:revive,staticcheck
-				context.WithValue(inv.Context(), "gcp-client", metadataClient),
+				context.WithValue(ctx, "gcp-client", metadataClient),
 			),
 		)
-
-		ctx := inv.Context()
 		coderdtest.NewWorkspaceAgentWaiter(t, client, r.Workspace.ID).
 			MatchResources(matchAgentWithVersion).
 			Wait()
