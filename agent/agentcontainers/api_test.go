@@ -3189,3 +3189,28 @@ func TestWithDevcontainersNameGeneration(t *testing.T) {
 	assert.Equal(t, "bar-project", response.Devcontainers[0].Name, "second devcontainer should has a collision and uses the folder name with a prefix")
 	assert.Equal(t, "baz-project", response.Devcontainers[1].Name, "third devcontainer should use the folder name with a prefix since it collides with the first two")
 }
+
+func TestPrebuildsClaimOnAPI(t *testing.T) {
+	t.Parallel()
+
+	var (
+		// ctx    = testutil.Context(t, testutil.WaitMedium)
+		logger = testutil.Logger(t)
+		mClock = quartz.NewMock(t)
+
+		fSAC   = &fakeSubAgentClient{}
+		fCCLI  = &fakeContainerCLI{}
+		fDCCLI = &fakeDevcontainerCLI{}
+	)
+
+	api := agentcontainers.NewAPI(logger,
+		agentcontainers.WithClock(mClock),
+		agentcontainers.WithSubAgentClient(fSAC),
+		agentcontainers.WithContainerCLI(fCCLI),
+		agentcontainers.WithDevcontainerCLI(fDCCLI),
+		agentcontainers.WithManifestInfo("prebuilds", "prebuilds-workspace", "parent-agent"),
+		agentcontainers.WithWatcher(watcher.NewNoop()),
+	)
+	api.Start()
+	defer api.Close()
+}

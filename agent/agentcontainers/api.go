@@ -379,6 +379,16 @@ func (api *API) Start() {
 	go api.updaterLoop()
 }
 
+func (api *API) HandleClaim(data map[string]any) {
+	api.mu.Lock()
+	defer api.mu.Unlock()
+
+	// TODO(DanielleMaywood):
+	// We need `data` to contain `manifest.OwnerName`, `manifest.WorkspaceName`.
+	api.ownerName = data["owner_name"].(string)
+	api.workspaceName = data["workspace_name"].(string)
+}
+
 func (api *API) watcherLoop() {
 	defer close(api.watcherDone)
 	defer api.logger.Debug(api.ctx, "watcher loop stopped")

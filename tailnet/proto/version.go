@@ -58,7 +58,7 @@ import (
 //   - Add ORGANIZATION SharingLevel
 const (
 	CurrentMajor = 2
-	CurrentMinor = 6
+	CurrentMinor = 7
 )
 
 var CurrentVersion = apiversion.New(CurrentMajor, CurrentMinor)

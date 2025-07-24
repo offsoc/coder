@@ -1373,6 +1373,11 @@ func (a *agent) handleManifest(manifestOK *checkpoint) func(ctx context.Context,
 					// been executed to ensure that the required tools can be
 					// installed.
 					a.containerAPI.Start()
+
+					a.SubscribeToClaimEvents(func(ctx context.Context, data interface{}) {
+						a.containerAPI.HandleClaim(data.(map[string]any))
+					})
+
 					for _, dc := range manifest.Devcontainers {
 						cErr := a.createDevcontainer(ctx, aAPI, dc, devcontainerScripts[dc.ID])
 						err = errors.Join(err, cErr)
