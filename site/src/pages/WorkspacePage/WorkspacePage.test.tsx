@@ -39,10 +39,39 @@ import WorkspacePage from "./WorkspacePage";
 
 const { API, MissingBuildParameters } = apiModule;
 
+// Template with classic parameter flow for testing button functionality
+const MockTemplateClassic = {
+	...MockTemplate,
+	use_classic_parameter_flow: true,
+};
+
 type RenderWorkspacePageOptions = Omit<RenderWithAuthOptions, "route" | "path">;
 
 // Renders the workspace page and waits for it be loaded
 const renderWorkspacePage = async (
+	workspace: Workspace,
+	options: RenderWorkspacePageOptions = {},
+) => {
+	jest.spyOn(API, "getWorkspaceByOwnerAndName").mockResolvedValue(workspace);
+	jest.spyOn(API, "getTemplate").mockResolvedValueOnce(MockTemplateClassic);
+	jest.spyOn(API, "getTemplateVersionRichParameters").mockResolvedValueOnce([]);
+	jest
+		.spyOn(API, "getDeploymentConfig")
+		.mockResolvedValueOnce(MockDeploymentConfig);
+	jest.spyOn(API, "getDynamicParameters").mockResolvedValue([]);
+	jest.spyOn(apiModule, "watchWorkspaceAgentLogs");
+
+	renderWithAuth(<WorkspacePage />, {
+		...options,
+		route: `/@${workspace.owner_name}/${workspace.name}`,
+		path: "/:username/:workspace",
+	});
+
+	await screen.findByText(workspace.name);
+};
+
+// Renders the workspace page with new parameter flow for parameter-specific tests
+const renderWorkspacePageWithNewParameterFlow = async (
 	workspace: Workspace,
 	options: RenderWorkspacePageOptions = {},
 ) => {
@@ -52,6 +81,7 @@ const renderWorkspacePage = async (
 	jest
 		.spyOn(API, "getDeploymentConfig")
 		.mockResolvedValueOnce(MockDeploymentConfig);
+	jest.spyOn(API, "getDynamicParameters").mockResolvedValue([]);
 	jest.spyOn(apiModule, "watchWorkspaceAgentLogs");
 
 	renderWithAuth(<WorkspacePage />, {
