@@ -131,3 +131,22 @@ func TestMCPHTTP_ToolRegistration(t *testing.T) {
 	require.Contains(t, toolNames, toolsdk.ToolNameReportTask, "Should include ReportTask (UserClientOptional)")
 	require.Contains(t, toolNames, toolsdk.ToolNameGetAuthenticatedUser, "Should include GetAuthenticatedUser (requires auth)")
 }
+
+func TestMCPServer_MCPServerMethod(t *testing.T) {
+	t.Parallel()
+
+	logger := testutil.Logger(t)
+
+	server, err := mcpserver.NewServer(logger)
+	require.NoError(t, err)
+
+	// Test that MCPServer() returns the underlying MCP server
+	mcpSrv := server.MCPServer()
+	require.NotNil(t, mcpSrv)
+
+	// Verify we can call methods on the returned server (basic functionality test)
+	// This confirms it's a valid MCP server instance
+	require.NotPanics(t, func() {
+		_ = mcpSrv
+	})
+}

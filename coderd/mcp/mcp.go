@@ -67,6 +67,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.streamableServer.ServeHTTP(w, r)
 }
 
+// MCPServer returns the underlying MCP server for advanced usage like SSE
+func (s *Server) MCPServer() *server.MCPServer {
+	return s.mcpServer
+}
+
 // RegisterTools registers all available MCP tools with the server
 func (s *Server) RegisterTools(client *codersdk.Client) error {
 	if client == nil {

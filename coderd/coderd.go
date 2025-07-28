@@ -998,6 +998,10 @@ func New(options *Options) *API {
 			)
 			// MCP HTTP transport endpoint with mandatory authentication
 			r.Mount("/http", api.mcpHTTPHandler())
+			
+			// MCP SSE transport endpoints with mandatory authentication
+			r.Mount("/sse", api.mcpSSEHandler())
+			r.Mount("/message", api.mcpSSEHandler())
 		})
 	})
 
