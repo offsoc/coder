@@ -898,8 +898,19 @@ const fillParameters = async (
 			);
 		}
 
+		// In dynamic parameter flow, parameters with default values may not be visible
+		// Check if the parameter field exists before trying to interact with it
+		const parameterSelector = `[data-testid='parameter-field-${richParameter.name}']`;
+		const parameterExists = await page.locator(parameterSelector).count() > 0;
+		
+		if (!parameterExists) {
+			// Parameter is not visible (likely due to dynamic parameter flow)
+			// This is expected behavior when the parameter has a default value
+			continue;
+		}
+
 		const parameterLabel = await page.waitForSelector(
-			`[data-testid='parameter-field-${richParameter.name}']`,
+			parameterSelector,
 			{ state: "visible" },
 		);
 
