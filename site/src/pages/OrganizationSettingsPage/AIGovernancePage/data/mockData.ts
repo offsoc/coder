@@ -125,10 +125,10 @@ interface AIToolUsage {
 }
 
 export const aiToolsUsageData: AIToolUsage[] = [
-	{ name: "Claude Code", value: 65, color: "#7953C3" },
-	{ name: "GitHub Copilot", value: 20, color: "#3FB950" },
-	{ name: "Amazon Q", value: 10, color: "#FF9900" },
-	{ name: "Roo Code", value: 5, color: "#FF5630" },
+	{ name: "Claude Code", value: 65, color: "#FF7630" }, // Orange for Claude Code
+	{ name: "GitHub Copilot", value: 20, color: "#3FB950" }, // Green for GitHub Copilot
+	{ name: "Amazon Q", value: 10, color: "#007EB9" }, // Blue for Amazon Q
+	{ name: "Roo Code", value: 5, color: "#6B57FF" }, // Purple for Roo Code
 ];
 
 // Generate mock top users
