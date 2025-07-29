@@ -379,7 +379,7 @@ func (api *API) Start() {
 	go api.updaterLoop()
 }
 
-func (api *API) HandleClaim(data map[string]any) {
+func (api *API) HandleClaim(data map[string]any) error {
 	api.mu.Lock()
 	defer api.mu.Unlock()
 
@@ -387,6 +387,31 @@ func (api *API) HandleClaim(data map[string]any) {
 	// We need `data` to contain `manifest.OwnerName`, `manifest.WorkspaceName`.
 	api.ownerName = data["owner_name"].(string)
 	api.workspaceName = data["workspace_name"].(string)
+
+	// - Step 1: Stop all injected sub agents.
+	dcToReinject := make([]codersdk.WorkspaceAgentDevcontainer, len(api.injectedSubAgentProcs))
+
+	for workspaceFolder, proc := range api.injectedSubAgentProcs {
+		proc.stop()
+
+		dcToReinject = append(dcToReinject, api.knownDevcontainers[workspaceFolder])
+		delete(api.injectedSubAgentProcs, workspaceFolder)
+	}
+
+	// - Step 2: Delete all sub agents.
+	client := *api.subAgentClient.Load()
+
+	subAgents, _ := client.List(api.ctx)
+	for _, subAgent := range subAgents {
+		_ = client.Delete(api.ctx, subAgent.ID)
+	}
+
+	// - Step 3: Attempt to inject all the containers again.
+	for _, dc := range dcToReinject {
+		_ = api.maybeInjectSubAgentIntoContainerLocked(api.ctx, dc)
+	}
+
+	return nil
 }
 
 func (api *API) watcherLoop() {
