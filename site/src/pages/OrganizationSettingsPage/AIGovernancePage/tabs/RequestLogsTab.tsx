@@ -28,6 +28,9 @@ export const RequestLogsTab: FC<RequestLogsTabProps> = ({ organization }) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+	const [expandedToolCalls, setExpandedToolCalls] = useState<
+		Record<string, boolean>
+	>({});
 
 	// Simulate loading
 	setTimeout(() => {
@@ -259,22 +262,75 @@ export const RequestLogsTab: FC<RequestLogsTabProps> = ({ organization }) => {
 																			);
 																		},
 																	)}
-																	{log.toolCalls > 5 && (
-																		<div
-																			className="text-xs text-content-link pl-7 flex items-center gap-1 cursor-pointer hover:underline"
-																			onClick={(e) => {
-																				e.stopPropagation();
-																				// In a real implementation, this would show all tool calls
-																				alert(
-																					`This would show all ${log.toolCalls} tool calls in a real implementation`,
-																				);
-																			}}
-																		>
-																			<span>
-																				+ {log.toolCalls - 5} more tool calls
-																			</span>
-																			<ChevronRight className="size-icon-xs" />
-																		</div>
+																	{log.toolCalls > 5 &&
+																		!expandedToolCalls[log.id] && (
+																			<div
+																				className="text-xs text-content-secondary pl-7 flex items-center gap-1 cursor-pointer"
+																				onClick={(e) => {
+																					e.stopPropagation();
+																					setExpandedToolCalls((prev) => ({
+																						...prev,
+																						[log.id]: true,
+																					}));
+																				}}
+																			>
+																				<span>+ {log.toolCalls - 5} more</span>
+																				<ChevronDown className="size-icon-xxs" />
+																			</div>
+																		)}
+																	{expandedToolCalls[log.id] && (
+																		<>
+																			{Array.from(
+																				{
+																					length: Math.min(
+																						log.toolCalls - 5,
+																						10,
+																					),
+																				},
+																				(_, i) => {
+																					const idx = i + 5;
+																					const tool = [
+																						"Read",
+																						"Write",
+																						"Bash",
+																						"Grep",
+																						"Task",
+																						"MultiEdit",
+																					][idx % 6];
+																					return (
+																						<div
+																							key={idx}
+																							className="flex items-start gap-2"
+																						>
+																							<div className="bg-surface-primary-hover text-content-primary px-2 py-1 rounded text-xs font-medium mt-0.5">
+																								{tool}
+																							</div>
+																							<div className="text-xs">
+																								<span className="font-mono text-content-secondary">
+																									{tool === "Read"
+																										? `Read file at path: /home/user/project/src/components/utils${idx}.ts`
+																										: tool === "Write"
+																											? `Created file at path: /home/user/project/src/helpers/format${idx}.ts`
+																											: tool === "Bash"
+																												? `Executed command: git status --short`
+																												: tool === "Grep"
+																													? `Searched for pattern: function render${idx}`
+																													: tool === "Task"
+																														? `Executed task: format code in file ${idx}`
+																														: `Modified ${idx} files in a single operation`}
+																								</span>
+																							</div>
+																						</div>
+																					);
+																				},
+																			)}
+																			{log.toolCalls > 15 && (
+																				<div className="text-xs text-content-secondary pl-7">
+																					{log.toolCalls > 15 &&
+																						`+ ${log.toolCalls - 15} more tool calls not shown`}
+																				</div>
+																			)}
+																		</>
 																	)}
 																</div>
 															</div>
