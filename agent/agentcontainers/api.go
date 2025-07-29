@@ -383,13 +383,11 @@ func (api *API) HandleClaim(data map[string]any) error {
 	api.mu.Lock()
 	defer api.mu.Unlock()
 
-	// TODO(DanielleMaywood):
-	// We need `data` to contain `manifest.OwnerName`, `manifest.WorkspaceName`.
 	api.ownerName = data["owner_name"].(string)
 	api.workspaceName = data["workspace_name"].(string)
 
 	// - Step 1: Stop all injected sub agents.
-	dcToReinject := make([]codersdk.WorkspaceAgentDevcontainer, len(api.injectedSubAgentProcs))
+	dcToReinject := make([]codersdk.WorkspaceAgentDevcontainer, 0, len(api.injectedSubAgentProcs))
 
 	for workspaceFolder, proc := range api.injectedSubAgentProcs {
 		proc.stop()
