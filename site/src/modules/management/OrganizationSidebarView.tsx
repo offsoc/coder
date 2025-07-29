@@ -210,11 +210,18 @@ const OrganizationSettingsNavigation: FC<
 					</SettingsSidebarNavItem>
 				)}
 				{orgPermissions.editSettings && (
-					<SettingsSidebarNavItem
-						href={urlForSubpage(organization.name, "settings")}
-					>
-						Settings
-					</SettingsSidebarNavItem>
+					<>
+						<SettingsSidebarNavItem
+							href={urlForSubpage(organization.name, "ai-governance")}
+						>
+							AI Governance
+						</SettingsSidebarNavItem>
+						<SettingsSidebarNavItem
+							href={urlForSubpage(organization.name, "settings")}
+						>
+							Settings
+						</SettingsSidebarNavItem>
+					</>
 				)}
 			</div>
 		</>
