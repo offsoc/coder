@@ -287,6 +287,9 @@ importers:
       '@chromatic-com/storybook':
         specifier: 3.2.2
         version: 3.2.2(react@18.3.1)(storybook@8.5.3(prettier@3.4.1))
+      '@faker-js/faker':
+        specifier: 9.9.0
+        version: 9.9.0
       '@octokit/types':
         specifier: 12.3.0
         version: 12.3.0
@@ -1071,6 +1074,10 @@ packages:
   '@eslint/js@8.52.0':
     resolution: {integrity: sha512-mjZVbpaeMZludF2fsWLD0Z9gCref1Tk4i9+wddjRvpUNqqcndPkBD09N/Mapey0b3jaXbLm2kICwFv2E64QinA==, tarball: https://registry.npmjs.org/@eslint/js/-/js-8.52.0.tgz}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@faker-js/faker@9.9.0':
+    resolution: {integrity: sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA==, tarball: https://registry.npmjs.org/@faker-js/faker/-/faker-9.9.0.tgz}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@fastly/performance-observer-polyfill@2.0.0':
     resolution: {integrity: sha512-cQC4E6ReYY4Vud+eCJSCr1N0dSz+fk7xJlLiSgPFDHbnFLZo5DenazoersMt9D8JkEhl9Z5ZwJ/8apcjSrdb8Q==, tarball: https://registry.npmjs.org/@fastly/performance-observer-polyfill/-/performance-observer-polyfill-2.0.0.tgz}
@@ -7103,6 +7110,8 @@ snapshots:
 
   '@eslint/js@8.52.0':
     optional: true
+
+  '@faker-js/faker@9.9.0': {}
 
   '@fastly/performance-observer-polyfill@2.0.0':
     dependencies:

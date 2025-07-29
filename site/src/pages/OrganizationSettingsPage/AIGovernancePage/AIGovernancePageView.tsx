@@ -67,10 +67,6 @@ export const AIGovernancePageView: FC<AIGovernancePageViewProps> = ({
 			</Tabs>
 
 			<div className="relative">
-				<Badge className="absolute right-0 top-0 z-10 bg-highlight-warning border border-solid border-warning-500 text-content-primary">
-					Prototype
-				</Badge>
-
 				{activeTab === "logs" && <RequestLogsTab organization={organization} />}
 				{activeTab === "analytics" && (
 					<AnalyticsTab organization={organization} />
