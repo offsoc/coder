@@ -61,10 +61,69 @@ export const RequestLogsTab: FC<RequestLogsTabProps> = ({ organization }) => {
 					value={searchQuery}
 					onChange={setSearchQuery}
 				/>
-				<Button variant="outline">
-					<FilterIcon className="size-icon-xs" />
-					Filter
-				</Button>
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button variant="outline" className="flex items-center gap-1">
+							<FilterIcon className="size-icon-xs" />
+							Filter
+							<ChevronDown className="size-icon-xs ml-1" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-56 p-2" align="end">
+						<div className="text-sm font-medium mb-2 p-1">Filter Logs</div>
+
+						<div className="space-y-3">
+							<div>
+								<div className="text-xs text-content-secondary mb-1.5">
+									Status
+								</div>
+								<div className="space-y-1.5">
+									{["Completed", "Error", "Throttled"].map((status) => (
+										<div
+											key={status}
+											className="flex items-center gap-2 rounded p-1 hover:bg-surface-active-hover cursor-pointer"
+										>
+											<div className="w-4 h-4 rounded border border-solid flex items-center justify-center">
+												<Check className="size-3" />
+											</div>
+											<span className="text-sm">{status}</span>
+										</div>
+									))}
+								</div>
+							</div>
+
+							<div>
+								<div className="text-xs text-content-secondary mb-1.5">
+									AI Tool
+								</div>
+								<div className="space-y-1.5">
+									{[
+										"Claude Code",
+										"GitHub Copilot",
+										"Amazon Q",
+										"Roo Code",
+									].map((tool) => (
+										<div
+											key={tool}
+											className="flex items-center gap-2 rounded p-1 hover:bg-surface-active-hover cursor-pointer"
+										>
+											<div className="w-4 h-4 rounded border border-solid flex items-center justify-center">
+												<Check className="size-3" />
+											</div>
+											<span className="text-sm">{tool}</span>
+										</div>
+									))}
+								</div>
+							</div>
+
+							<div className="border-t border-solid pt-2 mt-2">
+								<Button variant="outline" size="sm" className="w-full text-xs">
+									Apply filters
+								</Button>
+							</div>
+						</div>
+					</PopoverContent>
+				</Popover>
 				<Button variant="outline">
 					<DownloadIcon className="size-icon-xs" />
 					Export

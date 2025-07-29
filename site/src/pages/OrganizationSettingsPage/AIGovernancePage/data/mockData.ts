@@ -117,6 +117,20 @@ interface TopUser {
 	cost: number;
 }
 
+// AI tool usage data
+interface AIToolUsage {
+	name: string;
+	value: number;
+	color: string;
+}
+
+export const aiToolsUsageData: AIToolUsage[] = [
+	{ name: "Claude Code", value: 65, color: "#7953C3" },
+	{ name: "GitHub Copilot", value: 20, color: "#3FB950" },
+	{ name: "Amazon Q", value: 10, color: "#FF9900" },
+	{ name: "Roo Code", value: 5, color: "#FF5630" },
+];
+
 // Generate mock top users
 const generateTopUsers = (count: number): TopUser[] => {
 	return Array.from({ length: count }, () => {
