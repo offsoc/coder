@@ -1,6 +1,11 @@
 import type { Organization } from "api/typesGenerated";
 import { Button } from "components/Button/Button";
 import { EmptyState } from "components/EmptyState/EmptyState";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "components/Popover/Popover";
 import { SearchField } from "components/SearchField/SearchField";
 import {
 	Table,
@@ -12,6 +17,7 @@ import {
 } from "components/Table/Table";
 import { TableLoader } from "components/TableLoader/TableLoader";
 import {
+	Check,
 	ChevronDown,
 	ChevronRight,
 	DownloadIcon,
