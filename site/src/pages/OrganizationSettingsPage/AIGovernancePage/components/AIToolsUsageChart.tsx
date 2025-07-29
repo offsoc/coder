@@ -1,12 +1,5 @@
 import { type FC } from "react";
-import {
-	Cell,
-	Legend,
-	Pie,
-	PieChart,
-	ResponsiveContainer,
-	Tooltip,
-} from "recharts";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { aiToolsUsageData } from "../data/mockData";
 
 interface AIToolsUsageChartProps {
@@ -50,16 +43,6 @@ export const AIToolsUsageChart: FC<AIToolsUsageChartProps> = ({
 									/>
 								))}
 							</Pie>
-							<Tooltip
-								formatter={(value) => [`${value}%`, "Usage"]}
-								contentStyle={{
-									backgroundColor: "var(--surface-primary)",
-									border: "1px solid var(--border)",
-									borderRadius: "4px",
-									padding: "8px 12px",
-									boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-								}}
-							/>
 						</PieChart>
 					</ResponsiveContainer>
 				</div>
