@@ -260,8 +260,20 @@ export const RequestLogsTab: FC<RequestLogsTabProps> = ({ organization }) => {
 																		},
 																	)}
 																	{log.toolCalls > 5 && (
-																		<div className="text-xs text-content-secondary pl-7">
-																			+ {log.toolCalls - 5} more tool calls
+																		<div
+																			className="text-xs text-content-link pl-7 flex items-center gap-1 cursor-pointer hover:underline"
+																			onClick={(e) => {
+																				e.stopPropagation();
+																				// In a real implementation, this would show all tool calls
+																				alert(
+																					`This would show all ${log.toolCalls} tool calls in a real implementation`,
+																				);
+																			}}
+																		>
+																			<span>
+																				+ {log.toolCalls - 5} more tool calls
+																			</span>
+																			<ChevronRight className="size-icon-xs" />
 																		</div>
 																	)}
 																</div>
