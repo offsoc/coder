@@ -403,12 +403,16 @@ func (api *API) HandleClaim(data map[string]any) error {
 
 	subAgents, _ := client.List(api.ctx)
 	for _, subAgent := range subAgents {
-		_ = client.Delete(api.ctx, subAgent.ID)
+		if err := client.Delete(api.ctx, subAgent.ID); err != nil {
+			return xerrors.Errorf("delete sub agent client: %w", err)
+		}
 	}
 
 	// - Step 3: Attempt to inject all the containers again.
 	for _, dc := range dcToReinject {
-		_ = api.maybeInjectSubAgentIntoContainerLocked(api.ctx, dc)
+		if err := api.maybeInjectSubAgentIntoContainerLocked(api.ctx, dc); err != nil {
+			return xerrors.Errorf("inject sub agent into container: %w", err)
+		}
 	}
 
 	return nil

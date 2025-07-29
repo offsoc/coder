@@ -3194,9 +3194,10 @@ func TestPrebuildsClaimOnAPI(t *testing.T) {
 	t.Parallel()
 
 	var (
-		// ctx    = testutil.Context(t, testutil.WaitMedium)
-		logger = testutil.Logger(t)
-		mClock = quartz.NewMock(t)
+		ctx        = testutil.Context(t, testutil.WaitMedium)
+		logger     = testutil.Logger(t)
+		mClock     = quartz.NewMock(t)
+		tickerTrap = mClock.Trap().TickerFunc("updaterLoop")
 
 		fSAC   = &fakeSubAgentClient{}
 		fCCLI  = &fakeContainerCLI{}
@@ -3213,4 +3214,13 @@ func TestPrebuildsClaimOnAPI(t *testing.T) {
 	)
 	api.Start()
 	defer api.Close()
+
+	tickerTrap.MustWait(ctx).MustRelease(ctx)
+	tickerTrap.Close()
+
+	// Step 1: Setup a couple of dev containers, and have them injected.
+
+	// Step 2: Invoke `HandleClaim`.
+
+	// Step 3: Ensure new sub agents have been created with correct data.
 }

@@ -1203,9 +1203,11 @@ func (a *agent) run() (retErr error) {
 
 						// Publish claim event for other routines to react to
 						a.eventPubsub.Publish(ctx, "workspace_claimed", map[string]interface{}{
-							"workspace_id": a.manifest.Load().WorkspaceID,
-							"agent_id":     a.manifest.Load().AgentID,
-							"claimed_at":   response.UpdatedAt.AsTime(),
+							"owner_name":     a.manifest.Load().OwnerName,
+							"workspace_id":   a.manifest.Load().WorkspaceID,
+							"workspace_name": a.manifest.Load().WorkspaceName,
+							"agent_id":       a.manifest.Load().AgentID,
+							"claimed_at":     response.UpdatedAt.AsTime(),
 						})
 					}
 
@@ -1218,9 +1220,11 @@ func (a *agent) run() (retErr error) {
 
 						// Publish claim event for other routines to react to
 						a.eventPubsub.Publish(ctx, "workspace_claimed", map[string]interface{}{
-							"workspace_id": a.manifest.Load().WorkspaceID,
-							"agent_id":     a.manifest.Load().AgentID,
-							"claimed_at":   response.UpdatedAt.AsTime(),
+							"owner_name":     a.manifest.Load().OwnerName,
+							"workspace_id":   a.manifest.Load().WorkspaceID,
+							"workspace_name": a.manifest.Load().WorkspaceName,
+							"agent_id":       a.manifest.Load().AgentID,
+							"claimed_at":     response.UpdatedAt.AsTime(),
 						})
 
 					}
