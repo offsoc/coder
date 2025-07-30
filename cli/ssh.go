@@ -85,6 +85,9 @@ func (r *RootCmd) ssh() *serpent.Command {
 
 		containerName string
 		containerUser string
+
+		immortal         bool
+		immortalFallback bool
 	)
 	client := new(codersdk.Client)
 	wsClient := workspacesdk.New(client)
@@ -727,6 +730,16 @@ func (r *RootCmd) ssh() *serpent.Command {
 			Description: "Force the creation of a new tunnel to the workspace, even if the Coder Connect tunnel is available.",
 			Value:       serpent.BoolOf(&forceNewTunnel),
 			Hidden:      true,
+		},
+		{
+			Flag:        "immortal",
+			Description: "Use an immortal stream for the SSH connection that will automatically reconnect if the underlying connection is lost.",
+			Value:       serpent.BoolOf(&immortal),
+		},
+		{
+			Flag:        "immortal-fallback",
+			Description: "If immortal stream creation fails due to connection limits, fallback to a regular connection. Defaults to false for coder ssh but true for VS Code connections.",
+			Value:       serpent.BoolOf(&immortalFallback),
 		},
 		sshDisableAutostartOption(serpent.BoolOf(&disableAutostart)),
 	}

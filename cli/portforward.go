@@ -39,6 +39,9 @@ func (r *RootCmd) portForward() *serpent.Command {
 		udpForwards      []string // <port>:<port>
 		disableAutostart bool
 		appearanceConfig codersdk.AppearanceConfig
+
+		immortal         bool
+		immortalFallback bool
 	)
 	client := new(codersdk.Client)
 	cmd := &serpent.Command{
@@ -211,6 +214,16 @@ func (r *RootCmd) portForward() *serpent.Command {
 			Env:         "CODER_PORT_FORWARD_UDP",
 			Description: "Forward UDP port(s) from the workspace to the local machine. The UDP connection has TCP-like semantics to support stateful UDP protocols.",
 			Value:       serpent.StringArrayOf(&udpForwards),
+		},
+		{
+			Flag:        "immortal",
+			Description: "Use immortal streams for TCP port forwards that will automatically reconnect if the underlying connection is lost.",
+			Value:       serpent.BoolOf(&immortal),
+		},
+		{
+			Flag:        "immortal-fallback",
+			Description: "If immortal stream creation fails due to connection limits, fallback to regular connections. Defaults to true for port-forward.",
+			Value:       serpent.BoolOf(&immortalFallback),
 		},
 		sshDisableAutostartOption(serpent.BoolOf(&disableAutostart)),
 	}

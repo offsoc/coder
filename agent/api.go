@@ -66,6 +66,9 @@ func (a *agent) apiHandler() http.Handler {
 	r.Get("/debug/manifest", a.HandleHTTPDebugManifest)
 	r.Get("/debug/prometheus", promHandler.ServeHTTP)
 
+	// Mount immortal stream routes
+	r.Mount("/api/v0/immortal-stream", newImmortalStreamHandler(a.immortalStreamManager).Routes())
+
 	return r
 }
 

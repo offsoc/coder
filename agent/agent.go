@@ -50,6 +50,7 @@ import (
 	"github.com/coder/coder/v2/codersdk"
 	"github.com/coder/coder/v2/codersdk/agentsdk"
 	"github.com/coder/coder/v2/codersdk/workspacesdk"
+	"github.com/coder/coder/v2/immortalstream"
 	"github.com/coder/coder/v2/tailnet"
 	tailnetproto "github.com/coder/coder/v2/tailnet/proto"
 	"github.com/coder/quartz"
@@ -197,6 +198,14 @@ func New(options Options) Agent {
 		devcontainers:       options.Devcontainers,
 		containerAPIOptions: options.DevcontainerAPIOptions,
 	}
+
+	// Initialize immortal stream manager with a local dialer
+	a.immortalStreamManager = immortalstream.NewManager(
+		options.Logger.Named("immortal-stream"),
+		func(network, address string) (net.Conn, error) {
+			return net.Dial(network, address)
+		},
+	)
 	// Initially, we have a closed channel, reflecting the fact that we are not initially connected.
 	// Each time we connect we replace the channel (while holding the closeMutex) with a new one
 	// that gets closed on disconnection.  This is used to wait for graceful disconnection from the
@@ -280,6 +289,9 @@ type agent struct {
 	devcontainers       bool
 	containerAPIOptions []agentcontainers.Option
 	containerAPI        *agentcontainers.API
+
+	// immortalStreamManager handles immortal stream connections
+	immortalStreamManager *immortalstream.Manager
 }
 
 func (a *agent) TailnetConn() *tailnet.Conn {
@@ -1928,6 +1940,10 @@ func (a *agent) Close() error {
 
 	if err := a.containerAPI.Close(); err != nil {
 		a.logger.Error(a.hardCtx, "container API close", slog.Error(err))
+	}
+
+	if err := a.immortalStreamManager.Close(); err != nil {
+		a.logger.Error(a.hardCtx, "immortal stream manager close", slog.Error(err))
 	}
 
 	// Wait for the graceful shutdown to complete, but don't wait forever so
