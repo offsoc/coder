@@ -195,6 +195,9 @@ func (isc *ImmortalStreamConn) reconnect(ctx context.Context) {
 	}
 
 	// Attempt to reconnect
+	if isc.agentConn == nil {
+		return // Cannot reconnect without agent connection
+	}
 	newConn, err := isc.agentConn.connectToImmortalStream(ctx, isc.streamID, isc.readerSeqNum, isc.writerSeqNum)
 	if err != nil {
 		isc.logger.Error(ctx, "failed to reconnect immortal stream", slog.Error(err))
@@ -256,7 +259,7 @@ func (isc *ImmortalStreamConn) Close() error {
 	}
 
 	// Delete the immortal stream from the agent
-	if isc.streamID != uuid.Nil {
+	if isc.streamID != uuid.Nil && isc.agentConn != nil {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

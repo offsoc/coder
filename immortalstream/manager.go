@@ -50,7 +50,12 @@ func (s *Stream) IsConnected() bool {
 func (s *Stream) SetConnected(connected bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.setConnectedLocked(connected)
+}
 
+// setConnectedLocked updates the connection status without acquiring the mutex.
+// Must be called with s.mu held.
+func (s *Stream) setConnectedLocked(connected bool) {
 	now := time.Now()
 	if connected && !s.connected {
 		s.LastConnectionAt = now
@@ -65,6 +70,12 @@ func (s *Stream) SetConnected(connected bool) {
 func (s *Stream) UpdateSequenceNumbers(readerSeqNum, writerSeqNum int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.updateSequenceNumbersLocked(readerSeqNum, writerSeqNum)
+}
+
+// updateSequenceNumbersLocked updates the sequence numbers without acquiring the mutex.
+// Must be called with s.mu held.
+func (s *Stream) updateSequenceNumbersLocked(readerSeqNum, writerSeqNum int64) {
 	s.readerSeqNum = readerSeqNum
 	s.writerSeqNum = writerSeqNum
 }
@@ -187,12 +198,14 @@ func (m *Manager) CreateStream(ctx context.Context, req CreateStreamRequest) (*C
 // Must be called with streamsMu write lock held.
 func (m *Manager) evictOldestDisconnectedStreamLocked() bool {
 	var oldestStream *Stream
-	var oldestTime time.Time = time.Now()
+	var oldestTime time.Time
 
 	for _, stream := range m.streams {
-		if !stream.IsConnected() && (oldestStream == nil || stream.LastConnectionAt.Before(oldestTime)) {
-			oldestStream = stream
-			oldestTime = stream.LastConnectionAt
+		if !stream.IsConnected() {
+			if oldestStream == nil || stream.LastConnectionAt.Before(oldestTime) {
+				oldestStream = stream
+				oldestTime = stream.LastConnectionAt
+			}
 		}
 	}
 
@@ -262,6 +275,7 @@ func (m *Manager) ConnectToStream(ctx context.Context, id uuid.UUID, conn io.Rea
 				slog.F("stream_id", id),
 				slog.F("reader_seq", rSeqNum),
 				slog.F("writer_seq", wSeqNum))
+			// Use public methods since callback runs in different goroutine
 			stream.UpdateSequenceNumbers(rSeqNum, wSeqNum)
 			stream.SetConnected(false)
 		}
@@ -275,8 +289,9 @@ func (m *Manager) ConnectToStream(ctx context.Context, id uuid.UUID, conn io.Rea
 		}
 	}
 
-	stream.SetConnected(true)
-	stream.UpdateSequenceNumbers(readerSeqNum, writerSeqNum)
+	// Use locked versions since we already hold the mutex
+	stream.setConnectedLocked(true)
+	stream.updateSequenceNumbersLocked(readerSeqNum, writerSeqNum)
 
 	m.logger.Info(ctx, "connected to immortal stream",
 		slog.F("id", id),

@@ -54,13 +54,14 @@ func (h *immortalStreamHandler) createStream(w http.ResponseWriter, r *http.Requ
 
 	resp, err := h.manager.CreateStream(ctx, req)
 	if err != nil {
-		if xerrors.Is(err, xerrors.Errorf("Too many Immortal Streams")) {
+		errMsg := err.Error()
+		if errMsg == "Too many Immortal Streams" {
 			httpapi.Write(ctx, w, http.StatusServiceUnavailable, codersdk.Response{
 				Message: "Too many Immortal Streams",
 			})
 			return
 		}
-		if xerrors.Is(err, xerrors.Errorf("The connection was refused")) {
+		if errMsg == "The connection was refused" {
 			httpapi.Write(ctx, w, http.StatusNotFound, codersdk.Response{
 				Message: "The connection was refused",
 			})
@@ -182,7 +183,7 @@ func (h *immortalStreamHandler) deleteStream(w http.ResponseWriter, r *http.Requ
 
 	err = h.manager.DeleteStream(streamID)
 	if err != nil {
-		if xerrors.Is(err, xerrors.Errorf("stream not found")) {
+		if err.Error() == "stream not found" {
 			httpapi.Write(ctx, w, http.StatusNotFound, codersdk.Response{
 				Message: "Stream not found",
 			})
