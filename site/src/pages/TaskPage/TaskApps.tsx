@@ -1,5 +1,7 @@
 import type { WorkspaceApp } from "api/typesGenerated";
 import { Button } from "components/Button/Button";
+import { Input } from "components/Input/Input";
+import { Switch } from "components/Switch/Switch";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,11 +10,18 @@ import {
 } from "components/DropdownMenu/DropdownMenu";
 import { ExternalImage } from "components/ExternalImage/ExternalImage";
 import { InfoTooltip } from "components/InfoTooltip/InfoTooltip";
-import { ChevronDownIcon, LayoutGridIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	LayoutGridIcon,
+	ShieldIcon,
+	PlusIcon,
+	TrashIcon,
+	SaveIcon,
+} from "lucide-react";
 import { useAppLink } from "modules/apps/useAppLink";
 import type { Task } from "modules/tasks/tasks";
 import type React from "react";
-import { type FC, useState } from "react";
+import { type FC, useState, useCallback } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { cn } from "utils/cn";
 import { TaskAppIFrame } from "./TaskAppIframe";
@@ -22,6 +31,56 @@ type TaskAppsProps = {
 };
 
 export const TaskApps: FC<TaskAppsProps> = ({ task }) => {
+	const [allowedCommands, setAllowedCommands] = useState<string[]>([
+		"npm run dev",
+		"npm run test",
+	]);
+	const [allowedHosts, setAllowedHosts] = useState<string[]>([
+		"artifacts.corporate.com",
+	]);
+	const [auditingEnabled, setAuditingEnabled] = useState<boolean>(true);
+
+	const handleCommandChange = useCallback((index: number, value: string) => {
+		setAllowedCommands((prev) => {
+			const updated = [...prev];
+			updated[index] = value;
+			return updated;
+		});
+	}, []);
+
+	const removeCommand = useCallback((index: number) => {
+		setAllowedCommands((prev) => prev.filter((_, i) => i !== index));
+	}, []);
+
+	const addCommand = useCallback(() => {
+		setAllowedCommands((prev) => [...prev, ""]);
+	}, []);
+
+	const handleHostChange = useCallback((index: number, value: string) => {
+		setAllowedHosts((prev) => {
+			const updated = [...prev];
+			updated[index] = value;
+			return updated;
+		});
+	}, []);
+
+	const removeHost = useCallback((index: number) => {
+		setAllowedHosts((prev) => prev.filter((_, i) => i !== index));
+	}, []);
+
+	const addHost = useCallback(() => {
+		setAllowedHosts((prev) => [...prev, ""]);
+	}, []);
+
+	const saveSettings = useCallback(() => {
+		// Here you would typically save the settings to your backend
+		console.log("Saving security settings:", {
+			allowedCommands,
+			allowedHosts,
+			auditingEnabled,
+		});
+		// For now, we just log to console as this is a prototype
+	}, [allowedCommands, allowedHosts, auditingEnabled]);
 	const agents = task.workspace.latest_build.resources
 		.flatMap((r) => r.agents)
 		.filter((a) => !!a);
@@ -75,8 +134,110 @@ export const TaskApps: FC<TaskAppsProps> = ({ task }) => {
 					))}
 				</div>
 
-				{externalApps.length > 0 && (
-					<div className="ml-auto">
+				<div className="ml-auto flex gap-2">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button size="sm" variant="subtle">
+								<ShieldIcon className="mr-1.5 h-4 w-4" />
+								Security
+								<ChevronDownIcon className="ml-1" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" className="w-[400px]">
+							<div className="p-4 space-y-4">
+								<div className="border-b border-border pb-2 mb-2 flex items-center justify-between">
+									<h3 className="text-lg font-medium">Security Settings</h3>
+								</div>
+
+								<div>
+									<h4 className="text-sm font-medium mb-2">Allowed Commands</h4>
+									<div className="space-y-2">
+										{allowedCommands.map((command, index) => (
+											<div key={index} className="flex items-center gap-2">
+												<Input
+													className="flex-1 font-mono text-sm"
+													value={command}
+													onChange={(e) =>
+														handleCommandChange(index, e.target.value)
+													}
+												/>
+												<Button
+													size="icon"
+													variant="outline"
+													onClick={() => removeCommand(index)}
+												>
+													<TrashIcon className="h-4 w-4" />
+													<span className="sr-only">Remove</span>
+												</Button>
+											</div>
+										))}
+										<Button
+											size="sm"
+											variant="outline"
+											className="w-full mt-1"
+											onClick={addCommand}
+										>
+											<PlusIcon className="h-4 w-4 mr-1" />
+											Add Command
+										</Button>
+									</div>
+								</div>
+
+								<div className="mt-4">
+									<h4 className="text-sm font-medium mb-2">Allowed Hosts</h4>
+									<div className="space-y-2">
+										{allowedHosts.map((host, index) => (
+											<div key={index} className="flex items-center gap-2">
+												<Input
+													className="flex-1 font-mono text-sm"
+													value={host}
+													onChange={(e) =>
+														handleHostChange(index, e.target.value)
+													}
+												/>
+												<Button
+													size="icon"
+													variant="outline"
+													onClick={() => removeHost(index)}
+												>
+													<TrashIcon className="h-4 w-4" />
+													<span className="sr-only">Remove</span>
+												</Button>
+											</div>
+										))}
+										<Button
+											size="sm"
+											variant="outline"
+											className="w-full mt-1"
+											onClick={addHost}
+										>
+											<PlusIcon className="h-4 w-4 mr-1" />
+											Add Host
+										</Button>
+									</div>
+								</div>
+
+								<div className="flex items-center justify-between mt-4">
+									<span className="text-sm font-medium">Auditing</span>
+									<Switch
+										checked={auditingEnabled}
+										onCheckedChange={setAuditingEnabled}
+									/>
+								</div>
+
+								<Button
+									className="w-full mt-4"
+									size="sm"
+									onClick={saveSettings}
+								>
+									<SaveIcon className="h-4 w-4 mr-1.5" />
+									Save Settings
+								</Button>
+							</div>
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					{externalApps.length > 0 && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button size="sm" variant="subtle">
@@ -106,8 +267,8 @@ export const TaskApps: FC<TaskAppsProps> = ({ task }) => {
 								})}
 							</DropdownMenuContent>
 						</DropdownMenu>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 
 			<div className="flex-1">
