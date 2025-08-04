@@ -1032,7 +1032,48 @@ func newBinMetadataCache(binFS http.FileSystem, binSha1Hashes map[string]string)
 	return b
 }
 
+// validateFileName ensures the file name is safe and doesn't contain path traversal sequences
+func validateFileName(name string) error {
+	// Check for empty or root path
+	if name == "" || name == "/" {
+		return os.ErrNotExist
+	}
+
+	// Check for any path separators (both forward and back slashes)
+	if strings.ContainsAny(name, "/\\") {
+		return os.ErrNotExist
+	}
+
+	// Check for path traversal sequences
+	if strings.Contains(name, "..") {
+		return os.ErrNotExist
+	}
+
+	// Check for null bytes
+	if strings.Contains(name, "\x00") {
+		return os.ErrNotExist
+	}
+
+	// Ensure the cleaned path equals the original (prevents encoded traversal)
+	cleaned := filepath.Clean(name)
+	if cleaned != name {
+		return os.ErrNotExist
+	}
+
+	// Additional check: ensure the name doesn't start with a dot (hidden files)
+	if strings.HasPrefix(name, ".") {
+		return os.ErrNotExist
+	}
+
+	return nil
+}
+
 func (b *binMetadataCache) getMetadata(name string) (binMetadata, error) {
+	// Validate the file name to prevent path traversal attacks
+	if err := validateFileName(name); err != nil {
+		return binMetadata{}, err
+	}
+
 	b.mut.RLock()
 	metadata, ok := b.metadata[name]
 	b.mut.RUnlock()
