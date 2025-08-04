@@ -18,7 +18,12 @@ trap cleanup EXIT
 log "Use temporary file: ${API_MD_TMP_FILE}"
 
 pushd "${PROJECT_ROOT}"
-go run github.com/swaggo/swag/cmd/swag@v1.8.9 init --generalInfo="coderd.go" --dir="./coderd,./codersdk,./enterprise/coderd,./enterprise/wsproxy/wsproxysdk" --output="./coderd/apidoc" --outputTypes="go,json" --parseDependency=true
+go run github.com/swaggo/swag/cmd/swag@v1.8.9 init \
+        --generalInfo="coderd.go" \
+        --dir="./coderd,./codersdk,./enterprise/coderd,./enterprise/wsproxy/wsproxysdk" \
+        --output="./coderd/apidoc" \
+        --outputTypes="go,json" \
+        --parseDependency=true
 popd
 
 pushd "${APIDOCGEN_DIR}"
@@ -27,7 +32,11 @@ pushd "${APIDOCGEN_DIR}"
 pnpm exec -- openapi-generator-cli version
 # Render the Markdown file.
 TMP_OUTPUT_DIR=$(mktemp -d /tmp/coder-openapi-gen.XXXXXX)
-pnpm exec -- openapi-generator-cli generate -i "../../coderd/apidoc/swagger.json" -g markdown -o "${TMP_OUTPUT_DIR}" --additional-properties=skipOperationExample=true
+pnpm exec -- openapi-generator-cli generate \
+        -i "../../coderd/apidoc/swagger.json" \
+        -g markdown \
+        -o "${TMP_OUTPUT_DIR}" \
+        --additional-properties=skipOperationExample=true
 
 # Combine all API files into a single file with section markers
 echo "" > "${API_MD_TMP_FILE}"
