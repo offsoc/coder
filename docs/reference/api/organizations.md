@@ -1,4 +1,4 @@
-# OrganizationsApi
+# Organizations
 
 
 All URIs are relative to */api/v2*

@@ -1,4 +1,4 @@
-# InsightsApi
+# Insights
 
 
 All URIs are relative to */api/v2*

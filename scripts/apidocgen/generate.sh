@@ -40,17 +40,77 @@ pnpm exec -- openapi-generator-cli generate \
 
 # Combine all API files into a single file with section markers
 echo "" > "${API_MD_TMP_FILE}"
+
+# Map openapi-generator-cli filenames to original filenames
+declare -A filename_map=(
+    ["AgentsApi"]="Agents"
+    ["ApplicationsApi"]="Applications"
+    ["AuditApi"]="Audit"
+    ["AuthorizationApi"]="Authorization"
+    ["BuildsApi"]="Builds"
+    ["DebugApi"]="Debug"
+    ["EnterpriseApi"]="Enterprise"
+    ["FilesApi"]="Files"
+    ["GeneralApi"]="General"
+    ["GitApi"]="Git"
+    ["InsightsApi"]="Insights"
+    ["MembersApi"]="Members"
+    ["NotificationsApi"]="Notifications"
+    ["OrganizationsApi"]="Organizations"
+    ["PortSharingApi"]="PortSharing"
+    ["PrebuildsApi"]="Prebuilds"
+    ["ProvisioningApi"]="Provisioning"
+    ["TemplatesApi"]="Templates"
+    ["UsersApi"]="Users"
+    ["WorkspaceProxiesApi"]="WorkspaceProxies"
+    ["WorkspacesApi"]="Workspaces"
+)
+
 for api_file in "${TMP_OUTPUT_DIR}/Apis/"*.md; do
     if [ -f "$api_file" ]; then
-        api_name=$(basename "$api_file" .md)
+        openapi_name=$(basename "$api_file" .md)
+        # Use mapped name if available, otherwise use original name
+        section_name=${filename_map[$openapi_name]:-$openapi_name}
         echo "<!-- APIDOCGEN: BEGIN SECTION -->" >> "${API_MD_TMP_FILE}"
-        echo "# ${api_name}" >> "${API_MD_TMP_FILE}"
+        echo "# ${section_name}" >> "${API_MD_TMP_FILE}"
         echo "" >> "${API_MD_TMP_FILE}"
         # Skip the first line (which is the title) and add the rest
         tail -n +2 "$api_file" >> "${API_MD_TMP_FILE}"
         echo "" >> "${API_MD_TMP_FILE}"
     fi
 done
+
+# Add static authentication section
+echo "<!-- APIDOCGEN: BEGIN SECTION -->" >> "${API_MD_TMP_FILE}"
+echo "# Authentication" >> "${API_MD_TMP_FILE}"
+echo "" >> "${API_MD_TMP_FILE}"
+echo "Long-lived tokens can be generated to perform actions on behalf of your user account:" >> "${API_MD_TMP_FILE}"
+echo "" >> "${API_MD_TMP_FILE}"
+echo '```shell' >> "${API_MD_TMP_FILE}"
+echo 'coder tokens create' >> "${API_MD_TMP_FILE}"
+echo '```' >> "${API_MD_TMP_FILE}"
+echo "" >> "${API_MD_TMP_FILE}"
+echo "You can use tokens with the Coder's REST API using the \`Coder-Session-Token\` HTTP header." >> "${API_MD_TMP_FILE}"
+echo "" >> "${API_MD_TMP_FILE}"
+
+# Add schemas section from Models if it exists
+if [ -d "${TMP_OUTPUT_DIR}/Models" ] && [ "$(ls -A "${TMP_OUTPUT_DIR}/Models")" ]; then
+    echo "<!-- APIDOCGEN: BEGIN SECTION -->" >> "${API_MD_TMP_FILE}"
+    echo "# Schemas" >> "${API_MD_TMP_FILE}"
+    echo "" >> "${API_MD_TMP_FILE}"
+    echo "## Models" >> "${API_MD_TMP_FILE}"
+    echo "" >> "${API_MD_TMP_FILE}"
+    for model_file in "${TMP_OUTPUT_DIR}/Models/"*.md; do
+        if [ -f "$model_file" ]; then
+            model_name=$(basename "$model_file" .md)
+            echo "### ${model_name}" >> "${API_MD_TMP_FILE}"
+            echo "" >> "${API_MD_TMP_FILE}"
+            # Skip the first line (which is the title) and add the rest
+            tail -n +2 "$model_file" >> "${API_MD_TMP_FILE}"
+            echo "" >> "${API_MD_TMP_FILE}"
+        fi
+    done
+fi
 
 # Clean up temporary directory
 rm -rf "${TMP_OUTPUT_DIR}"

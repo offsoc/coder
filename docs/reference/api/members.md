@@ -1,4 +1,4 @@
-# MembersApi
+# Members
 
 
 All URIs are relative to */api/v2*

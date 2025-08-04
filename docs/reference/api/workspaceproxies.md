@@ -1,4 +1,4 @@
-# WorkspaceProxiesApi
+# WorkspaceProxies
 
 
 All URIs are relative to */api/v2*
