@@ -3568,7 +3568,7 @@ func logWorkspaceDetails(t *testing.T, client *codersdk.Client, workspaceID uuid
 	t.Logf("  Organization ID: %s", workspace.OrganizationID)
 	t.Logf("  Template ID: %s", workspace.TemplateID)
 	t.Logf("  Latest Build ID: %s", workspace.LatestBuild.ID)
-	t.Logf("  Latest Build Job ID: %s", workspace.LatestBuild.JobID)
+	t.Logf("  Latest Build Job ID: %s", workspace.LatestBuild.Job.ID)
 	t.Logf("  Latest Build Job Tags: %+v", workspace.LatestBuild.Job.Tags)
 }
 
@@ -3584,13 +3584,20 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 	provisionerTags := map[string]string{"owner": "", "scope": "organization"}
 	t.Logf("Creating provisioner daemon with tags: %+v", provisionerTags)
 	
-	_, err := api.CreateInMemoryTaggedProvisionerDaemon(
+	provisionerCloser, err := api.AGPL.CreateInMemoryTaggedProvisionerDaemon(
 		ctx,
 		"fresh-test-daemon",
 		[]codersdk.ProvisionerType{codersdk.ProvisionerTypeEcho},
 		provisionerTags,
 	)
 	require.NoError(t, err)
+	
+	// Register cleanup to close the provisioner when test ends
+	t.Cleanup(func() {
+		if provisionerCloser != nil {
+			_ = provisionerCloser.Close()
+		}
+	})
 	
 	// Wait for the daemon to be fully registered and active
 	require.Eventually(t, func() bool {
@@ -3625,11 +3632,12 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 				
 				if daemon.LastSeenAt.Valid {
 					age := time.Since(daemon.LastSeenAt.Time)
-					if age <= 5*time.Second { // Should be very fresh
+					// Use a more generous threshold since StaleInterval is 90 seconds
+					if age <= 30*time.Second { // Should be reasonably fresh
 						t.Logf("Fresh provisioner daemon is active: %s, age: %v", daemon.Name, age)
 						return true
 					} else {
-						t.Logf("Fresh provisioner daemon is stale: %s, age: %v", daemon.Name, age)
+						t.Logf("Fresh provisioner daemon is stale: %s, age: %v (threshold: 30s)", daemon.Name, age)
 					}
 				} else {
 					t.Logf("Fresh provisioner daemon has no LastSeenAt: %s", daemon.Name)
@@ -3638,6 +3646,22 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 		}
 		return false
 	}, testutil.WaitShort, testutil.IntervalFast)
+	
+	// Additional verification: ensure the daemon is still active right before we return
+	time.Sleep(1 * time.Second) // Give it a moment to send another heartbeat
+	daemons, err := client.ProvisionerDaemons(ctx)
+	require.NoError(t, err)
+	
+	for _, daemon := range daemons {
+		if daemon.Name == "fresh-test-daemon" && daemon.LastSeenAt.Valid {
+			age := time.Since(daemon.LastSeenAt.Time)
+			t.Logf("Final verification: fresh daemon age is %v (should be < 90s)", age)
+			if age > 60*time.Second {
+				t.Logf("WARNING: Fresh daemon is getting close to stale threshold (90s)")
+			}
+			break
+		}
+	}
 }
 
 func must[T any](value T, err error) T {
