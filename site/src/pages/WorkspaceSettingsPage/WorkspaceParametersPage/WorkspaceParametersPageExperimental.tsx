@@ -8,6 +8,7 @@ import type {
 } from "api/typesGenerated";
 import { ErrorAlert } from "components/Alert/ErrorAlert";
 import { EmptyState } from "components/EmptyState/EmptyState";
+import { FeatureStageBadge } from "components/FeatureStageBadge/FeatureStageBadge";
 import { Link } from "components/Link/Link";
 import { Loader } from "components/Loader/Loader";
 import {
@@ -149,7 +150,6 @@ const WorkspaceParametersPageExperimental: FC = () => {
 				transition: "start",
 				template_version_id: templateVersionId,
 				rich_parameter_values: buildParameters,
-				reason: "dashboard",
 			}),
 		onSuccess: () => {
 			navigate(`/@${workspace.owner_name}/${workspace.name}`);
@@ -226,7 +226,7 @@ const WorkspaceParametersPageExperimental: FC = () => {
 									<br />
 									<Link
 										href={docs(
-											"/admin/templates/extending-templates/dynamic-parameters",
+											"/admin/templates/extending-templates/parameters#enable-dynamic-parameters-early-access",
 										)}
 									>
 										View docs
@@ -236,6 +236,11 @@ const WorkspaceParametersPageExperimental: FC = () => {
 						</TooltipProvider>
 					</span>
 				</span>
+				<FeatureStageBadge
+					contentType={"beta"}
+					size="sm"
+					labelText="Dynamic parameters"
+				/>
 			</header>
 
 			{Boolean(error) && <ErrorAlert error={error} />}
@@ -261,9 +266,7 @@ const WorkspaceParametersPageExperimental: FC = () => {
 					message="This workspace has no parameters"
 					cta={
 						<Link
-							href={docs(
-								"/admin/templates/extending-templates/dynamic-parameters",
-							)}
+							href={docs("/admin/templates/extending-templates/parameters")}
 						>
 							Learn more about parameters
 						</Link>

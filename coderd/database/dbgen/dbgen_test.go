@@ -168,8 +168,6 @@ func TestGenerator(t *testing.T) {
 			DeletingAt:        w.DeletingAt,
 			AutomaticUpdates:  w.AutomaticUpdates,
 			Favorite:          w.Favorite,
-			GroupACL:          database.WorkspaceACL{},
-			UserACL:           database.WorkspaceACL{},
 		}
 		require.Equal(t, exp, table)
 	})

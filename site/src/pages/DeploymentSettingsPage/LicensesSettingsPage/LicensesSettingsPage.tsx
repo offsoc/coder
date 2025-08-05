@@ -85,9 +85,6 @@ const LicensesSettingsPage: FC = () => {
 				isRemovingLicense={isRemovingLicense}
 				removeLicense={(licenseId: number) => removeLicenseApi(licenseId)}
 				activeUsers={userStatusCount?.active}
-				managedAgentFeature={
-					entitlementsQuery.data?.features.managed_agent_limit
-				}
 				refreshEntitlements={async () => {
 					try {
 						await refreshEntitlementsMutation.mutateAsync();

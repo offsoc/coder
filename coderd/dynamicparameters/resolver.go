@@ -26,6 +26,45 @@ type parameterValue struct {
 	Source parameterValueSource
 }
 
+type ResolverError struct {
+	Diagnostics hcl.Diagnostics
+	Parameter   map[string]hcl.Diagnostics
+}
+
+// Error is a pretty bad format for these errors. Try to avoid using this.
+func (e *ResolverError) Error() string {
+	var diags hcl.Diagnostics
+	diags = diags.Extend(e.Diagnostics)
+	for _, d := range e.Parameter {
+		diags = diags.Extend(d)
+	}
+
+	return diags.Error()
+}
+
+func (e *ResolverError) HasError() bool {
+	if e.Diagnostics.HasErrors() {
+		return true
+	}
+
+	for _, diags := range e.Parameter {
+		if diags.HasErrors() {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ResolverError) Extend(parameterName string, diag hcl.Diagnostics) {
+	if e.Parameter == nil {
+		e.Parameter = make(map[string]hcl.Diagnostics)
+	}
+	if _, ok := e.Parameter[parameterName]; !ok {
+		e.Parameter[parameterName] = hcl.Diagnostics{}
+	}
+	e.Parameter[parameterName] = e.Parameter[parameterName].Extend(diag)
+}
+
 //nolint:revive // firstbuild is a control flag to turn on immutable validation
 func ResolveParameters(
 	ctx context.Context,
@@ -55,27 +94,28 @@ func ResolveParameters(
 		values[preset.Name] = parameterValue{Source: sourcePreset, Value: preset.Value}
 	}
 
-	// originalInputValues is going to be used to detect if a user tried to change
+	// originalValues is going to be used to detect if a user tried to change
 	// an immutable parameter after the first build.
-	// The actual input values are mutated based on attributes like mutability
-	// and ephemerality.
-	originalInputValues := make(map[string]parameterValue, len(values))
+	originalValues := make(map[string]parameterValue, len(values))
 	for name, value := range values {
 		// Store the original values for later use.
-		originalInputValues[name] = value
+		originalValues[name] = value
 	}
 
 	// Render the parameters using the values that were supplied to the previous build.
 	//
 	// This is how the form should look to the user on their workspace settings page.
 	// This is the original form truth that our validations should initially be based on.
-	output, diags := renderer.Render(ctx, ownerID, previousValuesMap)
+	output, diags := renderer.Render(ctx, ownerID, values.ValuesMap())
 	if diags.HasErrors() {
 		// Top level diagnostics should break the build. Previous values (and new) should
 		// always be valid. If there is a case where this is not true, then this has to
 		// be changed to allow the build to continue with a different set of values.
 
-		return nil, parameterValidationError(diags)
+		return nil, &ResolverError{
+			Diagnostics: diags,
+			Parameter:   nil,
+		}
 	}
 
 	// The user's input now needs to be validated against the parameters.
@@ -93,37 +133,51 @@ func ResolveParameters(
 				delete(values, parameter.Name)
 			}
 		}
+
+		// Immutable parameters should also not be allowed to be changed from
+		// the previous build. Remove any values taken from the preset or
+		// new build params. This forces the value to be the same as it was before.
+		//
+		// We do this so the next form render uses the original immutable value.
+		if !firstBuild && !parameter.Mutable {
+			delete(values, parameter.Name)
+			prev, ok := previousValuesMap[parameter.Name]
+			if ok {
+				values[parameter.Name] = parameterValue{
+					Value:  prev,
+					Source: sourcePrevious,
+				}
+			}
+		}
 	}
 
 	// This is the final set of values that will be used. Any errors at this stage
 	// are fatal. Additional validation for immutability has to be done manually.
 	output, diags = renderer.Render(ctx, ownerID, values.ValuesMap())
 	if diags.HasErrors() {
-		return nil, parameterValidationError(diags)
+		return nil, &ResolverError{
+			Diagnostics: diags,
+			Parameter:   nil,
+		}
 	}
 
-	// parameterNames is going to be used to remove any excess values left
+	// parameterNames is going to be used to remove any excess values that were left
 	// around without a parameter.
 	parameterNames := make(map[string]struct{}, len(output.Parameters))
-	parameterError := parameterValidationError(nil)
+	parameterError := &ResolverError{}
 	for _, parameter := range output.Parameters {
 		parameterNames[parameter.Name] = struct{}{}
 
 		if !firstBuild && !parameter.Mutable {
-			// previousValuesMap should be used over the first render output
-			// for the previous state of parameters. The previous build
-			// should emit all values, so the previousValuesMap should be
-			// complete with all parameter values (user specified and defaults)
-			originalValue, ok := previousValuesMap[parameter.Name]
-
+			originalValue, ok := originalValues[parameter.Name]
 			// Immutable parameters should not be changed after the first build.
-			// If the value matches the previous input value, that is fine.
+			// If the value matches the original value, that is fine.
 			//
-			// If the previous value is not set, that means this is a new parameter. New
+			// If the original value is not set, that means this is a new parameter. New
 			// immutable parameters are allowed. This is an opinionated choice to prevent
 			// workspaces failing to update or delete. Ideally we would block this, as
 			// immutable parameters should only be able to be set at creation time.
-			if ok && parameter.Value.AsString() != originalValue {
+			if ok && parameter.Value.AsString() != originalValue.Value {
 				var src *hcl.Range
 				if parameter.Source != nil {
 					src = &parameter.Source.HCLBlock().TypeRange

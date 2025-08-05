@@ -10,7 +10,6 @@ manually configured SSH connection.
 
 ### How to use the plugin
 
-> [!NOTE]
 > If you experience problems, please
 > [create a GitHub issue](https://github.com/coder/coder/issues) or share in
 > [our Discord channel](https://discord.gg/coder).

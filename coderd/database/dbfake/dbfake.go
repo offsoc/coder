@@ -179,7 +179,6 @@ func (b WorkspaceBuildBuilder) Do() WorkspaceResponse {
 		Input:          payload,
 		Tags:           map[string]string{},
 		TraceMetadata:  pqtype.NullRawMessage{},
-		LogsOverflowed: false,
 	})
 	require.NoError(b.t, err, "insert job")
 
@@ -418,8 +417,6 @@ func (t TemplateVersionBuilder) Do() TemplateVersionResponse {
 			InvalidateAfterSecs: preset.InvalidateAfterSecs,
 			SchedulingTimezone:  preset.SchedulingTimezone,
 			IsDefault:           false,
-			Description:         preset.Description,
-			Icon:                preset.Icon,
 		})
 	}
 

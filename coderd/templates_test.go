@@ -77,7 +77,6 @@ func TestPostTemplateByOrganization(t *testing.T) {
 		assert.Equal(t, expected.Name, got.Name)
 		assert.Equal(t, expected.Description, got.Description)
 		assert.Equal(t, expected.ActivityBumpMillis, got.ActivityBumpMillis)
-		assert.Equal(t, expected.UseClassicParameterFlow, false) // Current default is false
 
 		require.Len(t, auditor.AuditLogs(), 3)
 		assert.Equal(t, database.AuditActionCreate, auditor.AuditLogs()[0].Action)
@@ -1551,7 +1550,7 @@ func TestPatchTemplateMeta(t *testing.T) {
 		user := coderdtest.CreateFirstUser(t, client)
 		version := coderdtest.CreateTemplateVersion(t, client, user.OrganizationID, nil)
 		template := coderdtest.CreateTemplate(t, client, user.OrganizationID, version.ID)
-		require.False(t, template.UseClassicParameterFlow, "default is false")
+		require.True(t, template.UseClassicParameterFlow, "default is true")
 
 		bTrue := true
 		bFalse := false

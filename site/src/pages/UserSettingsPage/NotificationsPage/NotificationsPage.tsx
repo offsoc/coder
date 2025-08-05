@@ -28,7 +28,6 @@ import {
 	methodIcons,
 	methodLabels,
 } from "modules/notifications/utils";
-import type { Permissions } from "modules/permissions";
 import { type FC, Fragment } from "react";
 import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
@@ -47,7 +46,15 @@ const NotificationsPage: FC = () => {
 			},
 			{
 				...systemNotificationTemplates(),
-				select: (data: NotificationTemplate[]) => selectTemplatesByGroup(data),
+				select: (data: NotificationTemplate[]) => {
+					const groups = selectTemplatesByGroup(data);
+					return permissions.viewDeploymentConfig
+						? groups
+						: {
+								// Members only have access to the "Workspace Notifications" group
+								"Workspace Events": groups["Workspace Events"],
+							};
+				},
 			},
 			notificationDispatchMethods(),
 		],
@@ -96,10 +103,6 @@ const NotificationsPage: FC = () => {
 				{ready ? (
 					<Stack spacing={4}>
 						{Object.entries(templatesByGroup.data).map(([group, templates]) => {
-							if (!canSeeNotificationGroup(group, permissions)) {
-								return null;
-							}
-
 							const allDisabled = templates.some((tpl) => {
 								return notificationIsDisabled(disabledPreferences.data, tpl);
 							});
@@ -207,22 +210,6 @@ const NotificationsPage: FC = () => {
 };
 
 export default NotificationsPage;
-
-function canSeeNotificationGroup(
-	group: string,
-	permissions: Permissions,
-): boolean {
-	switch (group) {
-		case "Workspace Events":
-			return true;
-		case "Template Events":
-			return permissions.createTemplates;
-		case "User Events":
-			return permissions.createUser;
-		default:
-			return false;
-	}
-}
 
 function notificationIsDisabled(
 	disabledPreferences: Record<string, boolean>,

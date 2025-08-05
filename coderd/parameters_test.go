@@ -3,12 +3,10 @@ package coderd_test
 import (
 	"context"
 	"os"
-	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 	"golang.org/x/xerrors"
 
 	"github.com/coder/coder/v2/coderd"
@@ -72,8 +70,6 @@ func TestDynamicParametersOwnerSSHPublicKey(t *testing.T) {
 	require.Equal(t, sshKey.PublicKey, preview.Parameters[0].Value.Value)
 }
 
-// TestDynamicParametersWithTerraformValues is for testing the websocket flow of
-// dynamic parameters. No workspaces are created.
 func TestDynamicParametersWithTerraformValues(t *testing.T) {
 	t.Parallel()
 
@@ -201,15 +197,8 @@ func TestDynamicParametersWithTerraformValues(t *testing.T) {
 		modulesArchive, err := terraform.GetModulesArchive(os.DirFS("testdata/parameters/modules"))
 		require.NoError(t, err)
 
-		c := atomic.NewInt32(0)
-		reject := &dbRejectGitSSHKey{Store: db, hook: func(d *dbRejectGitSSHKey) {
-			if c.Add(1) > 1 {
-				// Second call forward, reject
-				d.SetReject(true)
-			}
-		}}
 		setup := setupDynamicParamsTest(t, setupDynamicParamsTestParams{
-			db:                       reject,
+			db:                       &dbRejectGitSSHKey{Store: db},
 			ps:                       ps,
 			provisionerDaemonVersion: provProto.CurrentVersion.String(),
 			mainTF:                   dynamicParametersTerraformSource,
@@ -352,36 +341,6 @@ func TestDynamicParametersWithTerraformValues(t *testing.T) {
 		require.Len(t, preview.Diagnostics, 1)
 		require.Equal(t, preview.Diagnostics[0].Extra.Code, "owner_not_found")
 	})
-
-	t.Run("TemplateVariables", func(t *testing.T) {
-		t.Parallel()
-
-		dynamicParametersTerraformSource, err := os.ReadFile("testdata/parameters/variables/main.tf")
-		require.NoError(t, err)
-
-		setup := setupDynamicParamsTest(t, setupDynamicParamsTestParams{
-			provisionerDaemonVersion: provProto.CurrentVersion.String(),
-			mainTF:                   dynamicParametersTerraformSource,
-			variables: []codersdk.TemplateVersionVariable{
-				{Name: "one", Value: "austin", DefaultValue: "alice", Type: "string"},
-			},
-			plan:   nil,
-			static: nil,
-		})
-
-		ctx := testutil.Context(t, testutil.WaitShort)
-		stream := setup.stream
-		previews := stream.Chan()
-
-		// Should see the output of the module represented
-		preview := testutil.RequireReceive(ctx, t, previews)
-		require.Equal(t, -1, preview.ID)
-		require.Empty(t, preview.Diagnostics)
-
-		require.Len(t, preview.Parameters, 1)
-		coderdtest.AssertParameter(t, "variable_values", preview.Parameters).
-			Exists().Value("austin")
-	})
 }
 
 type setupDynamicParamsTestParams struct {
@@ -394,7 +353,6 @@ type setupDynamicParamsTestParams struct {
 
 	static               []*proto.RichParameter
 	expectWebsocketError bool
-	variables            []codersdk.TemplateVersionVariable
 }
 
 type dynamicParamsTest struct {
@@ -420,7 +378,6 @@ func setupDynamicParamsTest(t *testing.T, args setupDynamicParamsTestParams) dyn
 		Plan:           args.plan,
 		ModulesArchive: args.modulesArchive,
 		StaticParams:   args.static,
-		Variables:      args.variables,
 	})
 
 	ctx := testutil.Context(t, testutil.WaitShort)
@@ -453,30 +410,8 @@ func setupDynamicParamsTest(t *testing.T, args setupDynamicParamsTestParams) dyn
 // that is generally impossible to force an error.
 type dbRejectGitSSHKey struct {
 	database.Store
-	rejectMu sync.RWMutex
-	reject   bool
-	hook     func(d *dbRejectGitSSHKey)
 }
 
-// SetReject toggles whether GetGitSSHKey should return an error or passthrough to the underlying store.
-func (d *dbRejectGitSSHKey) SetReject(reject bool) {
-	d.rejectMu.Lock()
-	defer d.rejectMu.Unlock()
-	d.reject = reject
-}
-
-func (d *dbRejectGitSSHKey) GetGitSSHKey(ctx context.Context, userID uuid.UUID) (database.GitSSHKey, error) {
-	if d.hook != nil {
-		d.hook(d)
-	}
-
-	d.rejectMu.RLock()
-	reject := d.reject
-	d.rejectMu.RUnlock()
-
-	if reject {
-		return database.GitSSHKey{}, xerrors.New("forcing a fake error")
-	}
-
-	return d.Store.GetGitSSHKey(ctx, userID)
+func (*dbRejectGitSSHKey) GetGitSSHKey(_ context.Context, _ uuid.UUID) (database.GitSSHKey, error) {
+	return database.GitSSHKey{}, xerrors.New("forcing a fake error")
 }

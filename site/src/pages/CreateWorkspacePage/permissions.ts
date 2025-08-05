@@ -1,25 +1,13 @@
-export const createWorkspaceChecks = (
-	organizationId: string,
-	templateId?: string,
-) =>
+export const createWorkspaceChecks = (organizationId: string) =>
 	({
 		createWorkspaceForAny: {
 			object: {
-				resource_type: "workspace" as const,
+				resource_type: "workspace",
 				organization_id: organizationId,
 				owner_id: "*",
 			},
-			action: "create" as const,
+			action: "create",
 		},
-		...(templateId && {
-			canUpdateTemplate: {
-				object: {
-					resource_type: "template" as const,
-					resource_id: templateId,
-				},
-				action: "update" as const,
-			},
-		}),
 	}) as const;
 
 export type CreateWorkspacePermissions = Record<

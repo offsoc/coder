@@ -4,12 +4,10 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"golang.org/x/xerrors"
 
 	"github.com/coder/coder/v2/coderd/rbac/policy"
@@ -35,11 +33,6 @@ type HealthSettings struct {
 type NotificationsSettings struct {
 	ID             uuid.UUID `db:"id" json:"id"`
 	NotifierPaused bool      `db:"notifier_paused" json:"notifier_paused"`
-}
-
-type PrebuildsSettings struct {
-	ID                   uuid.UUID `db:"id" json:"id"`
-	ReconciliationPaused bool      `db:"reconciliation_paused" json:"reconciliation_paused"`
 }
 
 type Actions []policy.Action
@@ -75,39 +68,6 @@ func (t *TemplateACL) Scan(src interface{}) error {
 
 func (t TemplateACL) Value() (driver.Value, error) {
 	return json.Marshal(t)
-}
-
-type WorkspaceACL map[string]WorkspaceACLEntry
-
-func (t *WorkspaceACL) Scan(src interface{}) error {
-	switch v := src.(type) {
-	case string:
-		return json.Unmarshal([]byte(v), &t)
-	case []byte, json.RawMessage:
-		//nolint
-		return json.Unmarshal(v.([]byte), &t)
-	}
-
-	return xerrors.Errorf("unexpected type %T", src)
-}
-
-//nolint:revive
-func (w WorkspaceACL) RBACACL() map[string][]policy.Action {
-	// Convert WorkspaceACL to a map of string to []policy.Action.
-	// This is used for RBAC checks.
-	rbacACL := make(map[string][]policy.Action, len(w))
-	for id, entry := range w {
-		rbacACL[id] = entry.Permissions
-	}
-	return rbacACL
-}
-
-func (t WorkspaceACL) Value() (driver.Value, error) {
-	return json.Marshal(t)
-}
-
-type WorkspaceACLEntry struct {
-	Permissions []policy.Action `json:"permissions"`
 }
 
 type ExternalAuthProvider struct {
@@ -271,20 +231,4 @@ func (a *UserLinkClaims) Scan(src interface{}) error {
 
 func (a UserLinkClaims) Value() (driver.Value, error) {
 	return json.Marshal(a)
-}
-
-func ParseIP(ipStr string) pqtype.Inet {
-	ip := net.ParseIP(ipStr)
-	ipNet := net.IPNet{}
-	if ip != nil {
-		ipNet = net.IPNet{
-			IP:   ip,
-			Mask: net.CIDRMask(len(ip)*8, len(ip)*8),
-		}
-	}
-
-	return pqtype.Inet{
-		IPNet: ipNet,
-		Valid: ip != nil,
-	}
 }

@@ -40,27 +40,39 @@ type PermissionDefinition struct {
 	Comment string
 }
 
-// Human friendly description to explain the action.
-type ActionDefinition string
+type ActionDefinition struct {
+	// Human friendly description to explain the action.
+	Description string
+}
+
+func (d ActionDefinition) String() string {
+	return d.Description
+}
+
+func actDef(description string) ActionDefinition {
+	return ActionDefinition{
+		Description: description,
+	}
+}
 
 var workspaceActions = map[Action]ActionDefinition{
-	ActionCreate: "create a new workspace",
-	ActionRead:   "read workspace data to view on the UI",
+	ActionCreate: actDef("create a new workspace"),
+	ActionRead:   actDef("read workspace data to view on the UI"),
 	// TODO: Make updates more granular
-	ActionUpdate: "edit workspace settings (scheduling, permissions, parameters)",
-	ActionDelete: "delete workspace",
+	ActionUpdate: actDef("edit workspace settings (scheduling, permissions, parameters)"),
+	ActionDelete: actDef("delete workspace"),
 
 	// Workspace provisioning. Start & stop are different so dormant workspaces can be
 	// stopped, but not stared.
-	ActionWorkspaceStart: "allows starting a workspace",
-	ActionWorkspaceStop:  "allows stopping a workspace",
+	ActionWorkspaceStart: actDef("allows starting a workspace"),
+	ActionWorkspaceStop:  actDef("allows stopping a workspace"),
 
 	// Running a workspace
-	ActionSSH:                "ssh into a given workspace",
-	ActionApplicationConnect: "connect to workspace apps via browser",
+	ActionSSH:                actDef("ssh into a given workspace"),
+	ActionApplicationConnect: actDef("connect to workspace apps via browser"),
 
-	ActionCreateAgent: "create a new workspace agent",
-	ActionDeleteAgent: "delete an existing workspace agent",
+	ActionCreateAgent: actDef("create a new workspace agent"),
+	ActionDeleteAgent: actDef("delete an existing workspace agent"),
 }
 
 // RBACPermissions is indexed by the type
@@ -74,13 +86,13 @@ var RBACPermissions = map[string]PermissionDefinition{
 	"user": {
 		Actions: map[Action]ActionDefinition{
 			// Actions deal with site wide user objects.
-			ActionRead:   "read user data",
-			ActionCreate: "create a new user",
-			ActionUpdate: "update an existing user",
-			ActionDelete: "delete an existing user",
+			ActionRead:   actDef("read user data"),
+			ActionCreate: actDef("create a new user"),
+			ActionUpdate: actDef("update an existing user"),
+			ActionDelete: actDef("delete an existing user"),
 
-			ActionReadPersonal:   "read personal user data like user settings and auth links",
-			ActionUpdatePersonal: "update personal data",
+			ActionReadPersonal:   actDef("read personal user data like user settings and auth links"),
+			ActionUpdatePersonal: actDef("update personal data"),
 		},
 	},
 	"workspace": {
@@ -100,126 +112,120 @@ var RBACPermissions = map[string]PermissionDefinition{
 		// If the user lacks prebuilt_workspace update or delete permissions,
 		// the authorization will always fall back to the corresponding permissions on workspace.
 		Actions: map[Action]ActionDefinition{
-			ActionUpdate: "update prebuilt workspace settings",
-			ActionDelete: "delete prebuilt workspace",
+			ActionUpdate: actDef("update prebuilt workspace settings"),
+			ActionDelete: actDef("delete prebuilt workspace"),
 		},
 	},
 	"workspace_proxy": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a workspace proxy",
-			ActionDelete: "delete a workspace proxy",
-			ActionUpdate: "update a workspace proxy",
-			ActionRead:   "read and use a workspace proxy",
+			ActionCreate: actDef("create a workspace proxy"),
+			ActionDelete: actDef("delete a workspace proxy"),
+			ActionUpdate: actDef("update a workspace proxy"),
+			ActionRead:   actDef("read and use a workspace proxy"),
 		},
 	},
 	"license": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a license",
-			ActionRead:   "read licenses",
-			ActionDelete: "delete license",
+			ActionCreate: actDef("create a license"),
+			ActionRead:   actDef("read licenses"),
+			ActionDelete: actDef("delete license"),
 			// Licenses are immutable, so update makes no sense
 		},
 	},
 	"audit_log": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read audit logs",
-			ActionCreate: "create new audit log entries",
-		},
-	},
-	"connection_log": {
-		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read connection logs",
-			ActionUpdate: "upsert connection log entries",
+			ActionRead:   actDef("read audit logs"),
+			ActionCreate: actDef("create new audit log entries"),
 		},
 	},
 	"deployment_config": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read deployment config",
-			ActionUpdate: "updating health information",
+			ActionRead:   actDef("read deployment config"),
+			ActionUpdate: actDef("updating health information"),
 		},
 	},
 	"deployment_stats": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead: "read deployment stats",
+			ActionRead: actDef("read deployment stats"),
 		},
 	},
 	"replicas": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead: "read replicas",
+			ActionRead: actDef("read replicas"),
 		},
 	},
 	"template": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate:       "create a template",
-			ActionUse:          "use the template to initially create a workspace, then workspace lifecycle permissions take over",
-			ActionRead:         "read template",
-			ActionUpdate:       "update a template",
-			ActionDelete:       "delete a template",
-			ActionViewInsights: "view insights",
+			ActionCreate:       actDef("create a template"),
+			ActionUse:          actDef("use the template to initially create a workspace, then workspace lifecycle permissions take over"),
+			ActionRead:         actDef("read template"),
+			ActionUpdate:       actDef("update a template"),
+			ActionDelete:       actDef("delete a template"),
+			ActionViewInsights: actDef("view insights"),
 		},
 	},
 	"group": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a group",
-			ActionRead:   "read groups",
-			ActionDelete: "delete a group",
-			ActionUpdate: "update a group",
+			ActionCreate: actDef("create a group"),
+			ActionRead:   actDef("read groups"),
+			ActionDelete: actDef("delete a group"),
+			ActionUpdate: actDef("update a group"),
 		},
 	},
 	"group_member": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead: "read group members",
+			ActionRead: actDef("read group members"),
 		},
 	},
 	"file": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a file",
-			ActionRead:   "read files",
+			ActionCreate: actDef("create a file"),
+			ActionRead:   actDef("read files"),
 		},
 	},
 	"provisioner_daemon": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a provisioner daemon/key",
+			ActionCreate: actDef("create a provisioner daemon/key"),
 			// TODO: Move to use?
-			ActionRead:   "read provisioner daemon",
-			ActionUpdate: "update a provisioner daemon",
-			ActionDelete: "delete a provisioner daemon/key",
+			ActionRead:   actDef("read provisioner daemon"),
+			ActionUpdate: actDef("update a provisioner daemon"),
+			ActionDelete: actDef("delete a provisioner daemon/key"),
 		},
 	},
 	"provisioner_jobs": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read provisioner jobs",
-			ActionUpdate: "update provisioner jobs",
-			ActionCreate: "create provisioner jobs",
+			ActionRead:   actDef("read provisioner jobs"),
+			ActionUpdate: actDef("update provisioner jobs"),
+			ActionCreate: actDef("create provisioner jobs"),
 		},
 	},
 	"organization": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create an organization",
-			ActionRead:   "read organizations",
-			ActionUpdate: "update an organization",
-			ActionDelete: "delete an organization",
+			ActionCreate: actDef("create an organization"),
+			ActionRead:   actDef("read organizations"),
+			ActionUpdate: actDef("update an organization"),
+			ActionDelete: actDef("delete an organization"),
 		},
 	},
 	"organization_member": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create an organization member",
-			ActionRead:   "read member",
-			ActionUpdate: "update an organization member",
-			ActionDelete: "delete member",
+			ActionCreate: actDef("create an organization member"),
+			ActionRead:   actDef("read member"),
+			ActionUpdate: actDef("update an organization member"),
+			ActionDelete: actDef("delete member"),
 		},
 	},
 	"debug_info": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead: "access to debug routes",
+			ActionRead: actDef("access to debug routes"),
 		},
 	},
 	"system": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create system resources",
-			ActionRead:   "view system resources",
-			ActionUpdate: "update system resources",
-			ActionDelete: "delete system resources",
+			ActionCreate: actDef("create system resources"),
+			ActionRead:   actDef("view system resources"),
+			ActionUpdate: actDef("update system resources"),
+			ActionDelete: actDef("delete system resources"),
 		},
 		Comment: `
 	// DEPRECATED: New resources should be created for new things, rather than adding them to System, which has become
@@ -228,119 +234,119 @@ var RBACPermissions = map[string]PermissionDefinition{
 	},
 	"api_key": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create an api key",
-			ActionRead:   "read api key details (secrets are not stored)",
-			ActionDelete: "delete an api key",
-			ActionUpdate: "update an api key, eg expires",
+			ActionCreate: actDef("create an api key"),
+			ActionRead:   actDef("read api key details (secrets are not stored)"),
+			ActionDelete: actDef("delete an api key"),
+			ActionUpdate: actDef("update an api key, eg expires"),
 		},
 	},
 	"tailnet_coordinator": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create a Tailnet coordinator",
-			ActionRead:   "view info about a Tailnet coordinator",
-			ActionUpdate: "update a Tailnet coordinator",
-			ActionDelete: "delete a Tailnet coordinator",
+			ActionCreate: actDef("create a Tailnet coordinator"),
+			ActionRead:   actDef("view info about a Tailnet coordinator"),
+			ActionUpdate: actDef("update a Tailnet coordinator"),
+			ActionDelete: actDef("delete a Tailnet coordinator"),
 		},
 	},
 	"assign_role": {
 		Actions: map[Action]ActionDefinition{
-			ActionAssign:   "assign user roles",
-			ActionUnassign: "unassign user roles",
-			ActionRead:     "view what roles are assignable",
+			ActionAssign:   actDef("assign user roles"),
+			ActionUnassign: actDef("unassign user roles"),
+			ActionRead:     actDef("view what roles are assignable"),
 		},
 	},
 	"assign_org_role": {
 		Actions: map[Action]ActionDefinition{
-			ActionAssign:   "assign org scoped roles",
-			ActionUnassign: "unassign org scoped roles",
-			ActionCreate:   "create/delete custom roles within an organization",
-			ActionRead:     "view what roles are assignable within an organization",
-			ActionUpdate:   "edit custom roles within an organization",
-			ActionDelete:   "delete roles within an organization",
+			ActionAssign:   actDef("assign org scoped roles"),
+			ActionUnassign: actDef("unassign org scoped roles"),
+			ActionCreate:   actDef("create/delete custom roles within an organization"),
+			ActionRead:     actDef("view what roles are assignable within an organization"),
+			ActionUpdate:   actDef("edit custom roles within an organization"),
+			ActionDelete:   actDef("delete roles within an organization"),
 		},
 	},
 	"oauth2_app": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "make an OAuth2 app",
-			ActionRead:   "read OAuth2 apps",
-			ActionUpdate: "update the properties of the OAuth2 app",
-			ActionDelete: "delete an OAuth2 app",
+			ActionCreate: actDef("make an OAuth2 app"),
+			ActionRead:   actDef("read OAuth2 apps"),
+			ActionUpdate: actDef("update the properties of the OAuth2 app"),
+			ActionDelete: actDef("delete an OAuth2 app"),
 		},
 	},
 	"oauth2_app_secret": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create an OAuth2 app secret",
-			ActionRead:   "read an OAuth2 app secret",
-			ActionUpdate: "update an OAuth2 app secret",
-			ActionDelete: "delete an OAuth2 app secret",
+			ActionCreate: actDef("create an OAuth2 app secret"),
+			ActionRead:   actDef("read an OAuth2 app secret"),
+			ActionUpdate: actDef("update an OAuth2 app secret"),
+			ActionDelete: actDef("delete an OAuth2 app secret"),
 		},
 	},
 	"oauth2_app_code_token": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create an OAuth2 app code token",
-			ActionRead:   "read an OAuth2 app code token",
-			ActionDelete: "delete an OAuth2 app code token",
+			ActionCreate: actDef("create an OAuth2 app code token"),
+			ActionRead:   actDef("read an OAuth2 app code token"),
+			ActionDelete: actDef("delete an OAuth2 app code token"),
 		},
 	},
 	"notification_message": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create notification messages",
-			ActionRead:   "read notification messages",
-			ActionUpdate: "update notification messages",
-			ActionDelete: "delete notification messages",
+			ActionCreate: actDef("create notification messages"),
+			ActionRead:   actDef("read notification messages"),
+			ActionUpdate: actDef("update notification messages"),
+			ActionDelete: actDef("delete notification messages"),
 		},
 	},
 	"notification_template": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read notification templates",
-			ActionUpdate: "update notification templates",
+			ActionRead:   actDef("read notification templates"),
+			ActionUpdate: actDef("update notification templates"),
 		},
 	},
 	"notification_preference": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read notification preferences",
-			ActionUpdate: "update notification preferences",
+			ActionRead:   actDef("read notification preferences"),
+			ActionUpdate: actDef("update notification preferences"),
 		},
 	},
 	"webpush_subscription": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create webpush subscriptions",
-			ActionRead:   "read webpush subscriptions",
-			ActionDelete: "delete webpush subscriptions",
+			ActionCreate: actDef("create webpush subscriptions"),
+			ActionRead:   actDef("read webpush subscriptions"),
+			ActionDelete: actDef("delete webpush subscriptions"),
 		},
 	},
 	"inbox_notification": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create inbox notifications",
-			ActionRead:   "read inbox notifications",
-			ActionUpdate: "update inbox notifications",
+			ActionCreate: actDef("create inbox notifications"),
+			ActionRead:   actDef("read inbox notifications"),
+			ActionUpdate: actDef("update inbox notifications"),
 		},
 	},
 	"crypto_key": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read crypto keys",
-			ActionUpdate: "update crypto keys",
-			ActionDelete: "delete crypto keys",
-			ActionCreate: "create crypto keys",
+			ActionRead:   actDef("read crypto keys"),
+			ActionUpdate: actDef("update crypto keys"),
+			ActionDelete: actDef("delete crypto keys"),
+			ActionCreate: actDef("create crypto keys"),
 		},
 	},
 	// idpsync_settings should always be org scoped
 	"idpsync_settings": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read IdP sync settings",
-			ActionUpdate: "update IdP sync settings",
+			ActionRead:   actDef("read IdP sync settings"),
+			ActionUpdate: actDef("update IdP sync settings"),
 		},
 	},
 	"workspace_agent_resource_monitor": {
 		Actions: map[Action]ActionDefinition{
-			ActionRead:   "read workspace agent resource monitor",
-			ActionCreate: "create workspace agent resource monitor",
-			ActionUpdate: "update workspace agent resource monitor",
+			ActionRead:   actDef("read workspace agent resource monitor"),
+			ActionCreate: actDef("create workspace agent resource monitor"),
+			ActionUpdate: actDef("update workspace agent resource monitor"),
 		},
 	},
 	"workspace_agent_devcontainers": {
 		Actions: map[Action]ActionDefinition{
-			ActionCreate: "create workspace agent devcontainers",
+			ActionCreate: actDef("create workspace agent devcontainers"),
 		},
 	},
 }
