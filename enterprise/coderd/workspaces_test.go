@@ -3584,7 +3584,7 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 	provisionerTags := map[string]string{"owner": "", "scope": "organization"}
 	t.Logf("Creating provisioner daemon with tags: %+v", provisionerTags)
 	
-	provisionerCloser, err := api.AGPL.CreateInMemoryTaggedProvisionerDaemon(
+	_, err := api.CreateInMemoryTaggedProvisionerDaemon(
 		ctx,
 		"fresh-test-daemon",
 		[]codersdk.ProvisionerType{codersdk.ProvisionerTypeEcho},
@@ -3592,12 +3592,8 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 	)
 	require.NoError(t, err)
 	
-	// Register cleanup to close the provisioner when test ends
-	t.Cleanup(func() {
-		if provisionerCloser != nil {
-			_ = provisionerCloser.Close()
-		}
-	})
+	// Note: In-memory provisioner daemons are automatically cleaned up when the API shuts down
+	// No manual cleanup needed
 	
 	// Wait for the daemon to be fully registered and active
 	require.Eventually(t, func() bool {
