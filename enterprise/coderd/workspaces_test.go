@@ -1857,7 +1857,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL)
+		mustEnsureFreshProvisioner(t, api.AGPL, client)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -2132,7 +2132,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL)
+		mustEnsureFreshProvisioner(t, api.AGPL, client)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -2268,7 +2268,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL)
+		mustEnsureFreshProvisioner(t, api.AGPL, client)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -3528,7 +3528,7 @@ func TestWorkspaceByOwnerAndName(t *testing.T) {
 }
 
 // mustEnsureFreshProvisioner ensures there's a fresh active provisioner daemon available
-func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API) {
+func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.Client) {
 	t.Helper()
 	ctx := testutil.Context(t, testutil.WaitShort)
 	
@@ -3542,8 +3542,24 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API) {
 	)
 	require.NoError(t, err)
 	
-	// Wait a moment for the daemon to be fully registered
-	time.Sleep(100 * time.Millisecond)
+	// Wait for the daemon to be fully registered and active
+	require.Eventually(t, func() bool {
+		daemons, err := client.ProvisionerDaemons(ctx)
+		if err != nil {
+			return false
+		}
+		// Look for our fresh daemon that's active (not stale)
+		for _, daemon := range daemons {
+			if daemon.Name == "fresh-test-daemon" && daemon.LastSeenAt.Valid {
+				age := time.Since(daemon.LastSeenAt.Time)
+				if age <= 5*time.Second { // Should be very fresh
+					t.Logf("Fresh provisioner daemon found: %s, age: %v", daemon.Name, age)
+					return true
+				}
+			}
+		}
+		return false
+	}, testutil.WaitShort, testutil.IntervalFast)
 }
 
 func must[T any](value T, err error) T {
