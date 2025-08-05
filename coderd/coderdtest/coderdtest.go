@@ -387,6 +387,9 @@ func NewOptions(t testing.TB, options *Options) (func(http.Handler), context.Can
 		experiments,
 	).WithStatsChannel(options.AutobuildStats)
 
+	// Set a shorter stale interval for tests to make provisioner availability checks more responsive
+	lifecycleExecutor.SetStaleInterval(autobuild.TestingStaleInterval)
+
 	lifecycleExecutor.Run()
 
 	jobReaperTicker := time.NewTicker(options.DeploymentValues.JobReaperDetectorInterval.Value())

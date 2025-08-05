@@ -17,6 +17,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/coder/coder/v2/coderd"
 	"github.com/coder/coder/v2/coderd/files"
 	agplprebuilds "github.com/coder/coder/v2/coderd/prebuilds"
 	"github.com/coder/coder/v2/enterprise/coderd/prebuilds"
@@ -1855,6 +1856,9 @@ func TestExecutorPrebuilds(t *testing.T) {
 			},
 		})
 
+		// Ensure fresh provisioner daemon is available before proceeding
+		mustEnsureFreshProvisioner(t, api.AGPL)
+
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
 		reconciler := prebuilds.NewStoreReconciler(
@@ -2127,6 +2131,9 @@ func TestExecutorPrebuilds(t *testing.T) {
 			},
 		})
 
+		// Ensure fresh provisioner daemon is available before proceeding
+		mustEnsureFreshProvisioner(t, api.AGPL)
+
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
 		reconciler := prebuilds.NewStoreReconciler(
@@ -2259,6 +2266,9 @@ func TestExecutorPrebuilds(t *testing.T) {
 				Features: license.Features{codersdk.FeatureAdvancedTemplateScheduling: 1},
 			},
 		})
+
+		// Ensure fresh provisioner daemon is available before proceeding
+		mustEnsureFreshProvisioner(t, api.AGPL)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -3515,6 +3525,25 @@ func TestWorkspaceByOwnerAndName(t *testing.T) {
 		require.Equal(t, workspace.LatestBuild.MatchedProvisioners.Count, 1)
 		require.Equal(t, workspace.LatestBuild.MatchedProvisioners.Available, 0)
 	})
+}
+
+// mustEnsureFreshProvisioner ensures there's a fresh active provisioner daemon available
+func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API) {
+	t.Helper()
+	ctx := testutil.Context(t, testutil.WaitShort)
+	
+	// Create a fresh provisioner daemon with the correct tags
+	provisionerTags := map[string]string{"owner": "", "scope": "organization"}
+	_, err := api.CreateInMemoryTaggedProvisionerDaemon(
+		ctx,
+		"fresh-test-daemon",
+		[]codersdk.ProvisionerType{codersdk.ProvisionerTypeEcho},
+		provisionerTags,
+	)
+	require.NoError(t, err)
+	
+	// Wait a moment for the daemon to be fully registered
+	time.Sleep(100 * time.Millisecond)
 }
 
 func must[T any](value T, err error) T {

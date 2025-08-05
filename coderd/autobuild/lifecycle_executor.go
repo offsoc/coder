@@ -1,6 +1,7 @@
 package autobuild
 
 import (
+	"time"
 	"context"
 	"database/sql"
 	"fmt"
@@ -53,6 +54,9 @@ type Executor struct {
 	notificationsEnqueuer notifications.Enqueuer
 	reg                   prometheus.Registerer
 	experiments           codersdk.Experiments
+	// staleInterval is the duration after which a provisioner daemon is considered stale.
+	// If not set, defaults to provisionerdserver.StaleInterval.
+	staleInterval         time.Duration
 
 	metrics executorMetrics
 }
@@ -99,6 +103,12 @@ func NewExecutor(ctx context.Context, db database.Store, ps pubsub.Pubsub, fc *f
 	return le
 }
 
+// SetStaleInterval sets the stale interval for provisioner daemons.
+// This is primarily used for testing to allow shorter stale intervals.
+func (e *Executor) SetStaleInterval(interval time.Duration) {
+	e.staleInterval = interval
+}
+
 // WithStatsChannel will cause Executor to push a RunStats to ch after
 // every tick.
 func (e *Executor) WithStatsChannel(ch chan<- Stats) *Executor {
@@ -140,24 +150,93 @@ func (e *Executor) hasAvailableProvisioners(ctx context.Context, tx database.Sto
 		WantTags:       templateVersionJob.Tags,
 	}
 
+	// Debug logging for investigation
+	e.log.Debug(ctx, "hasAvailableProvisioners: starting check",
+		slog.F("workspace_id", ws.ID),
+		slog.F("workspace_org_id", ws.OrganizationID),
+		slog.F("template_job_id", templateVersionJob.ID),
+		slog.F("template_job_tags", templateVersionJob.Tags),
+		slog.F("query_org_id", queryParams.OrganizationID),
+		slog.F("query_want_tags", queryParams.WantTags),
+	)
+
+	// First, let's check ALL provisioner daemons to see what exists
+	allDaemons, err := tx.GetProvisionerDaemons(dbauthz.AsSystemReadProvisionerDaemons(ctx))
+	if err != nil {
+		e.log.Debug(ctx, "hasAvailableProvisioners: failed to get all daemons", slog.F("error", err))
+	} else {
+		e.log.Debug(ctx, "hasAvailableProvisioners: found total daemons", slog.F("count", len(allDaemons)))
+		for i, daemon := range allDaemons {
+			e.log.Debug(ctx, "hasAvailableProvisioners: daemon details",
+				slog.F("index", i),
+				slog.F("daemon_id", daemon.ID),
+				slog.F("daemon_name", daemon.Name),
+				slog.F("daemon_org_id", daemon.OrganizationID),
+				slog.F("daemon_tags", daemon.Tags),
+				slog.F("daemon_last_seen_at", daemon.LastSeenAt),
+			)
+		}
+	}
+
 	// nolint: gocritic // The user (in this case, the user/context for autostart builds) may not have the full
 	// permissions to read provisioner daemons, but we need to check if there's any for the job prior to the
 	// execution of the job via autostart to fix: https://github.com/coder/coder/issues/17941
 	provisionerDaemons, err := tx.GetProvisionerDaemonsByOrganization(dbauthz.AsSystemReadProvisionerDaemons(ctx), queryParams)
 	if err != nil {
+		e.log.Debug(ctx, "hasAvailableProvisioners: failed to get daemons by org", slog.F("error", err))
 		return false, xerrors.Errorf("get provisioner daemons: %w", err)
 	}
 
+	e.log.Debug(ctx, "hasAvailableProvisioners: found matching daemons", slog.F("count", len(provisionerDaemons)))
+
 	// Check if any provisioners are active (not stale)
-	for _, pd := range provisionerDaemons {
+	staleInterval := e.staleInterval
+	if staleInterval == 0 {
+		staleInterval = provisionerdserver.StaleInterval
+	}
+	e.log.Debug(ctx, "hasAvailableProvisioners: checking staleness",
+		slog.F("stale_interval", staleInterval),
+		slog.F("current_time", t),
+	)
+
+	for i, pd := range provisionerDaemons {
+		e.log.Debug(ctx, "hasAvailableProvisioners: checking daemon",
+			slog.F("index", i),
+			slog.F("daemon_id", pd.ID),
+			slog.F("daemon_name", pd.Name),
+			slog.F("daemon_org_id", pd.OrganizationID),
+			slog.F("daemon_tags", pd.Tags),
+			slog.F("daemon_last_seen_at", pd.LastSeenAt),
+			slog.F("daemon_last_seen_valid", pd.LastSeenAt.Valid),
+		)
+
 		if pd.LastSeenAt.Valid {
 			age := t.Sub(pd.LastSeenAt.Time)
-			if age <= provisionerdserver.StaleInterval {
+			isActive := age <= staleInterval
+			e.log.Debug(ctx, "hasAvailableProvisioners: daemon staleness check",
+				slog.F("daemon_id", pd.ID),
+				slog.F("age", age),
+				slog.F("stale_interval", staleInterval),
+				slog.F("is_active", isActive),
+			)
+			if isActive {
 				e.log.Debug(ctx, "hasAvailableProvisioners: found active provisioner",
 					slog.F("daemon_id", pd.ID),
+					slog.F("age", age),
+					slog.F("stale_interval", staleInterval),
 				)
 				return true, nil
+			} else {
+				e.log.Debug(ctx, "hasAvailableProvisioners: daemon is stale",
+					slog.F("daemon_id", pd.ID),
+					slog.F("age", age),
+					slog.F("stale_interval", staleInterval),
+				)
 			}
+		} else {
+			e.log.Debug(ctx, "hasAvailableProvisioners: daemon has no LastSeenAt",
+				slog.F("daemon_id", pd.ID),
+			)
 		}
 	}
 	e.log.Debug(ctx, "hasAvailableProvisioners: no active provisioners found")
