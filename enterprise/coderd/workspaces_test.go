@@ -1857,7 +1857,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL, client)
+		mustEnsureFreshProvisioner(t, api.AGPL, client, owner.OrganizationID)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -2132,7 +2132,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL, client)
+		mustEnsureFreshProvisioner(t, api.AGPL, client, owner.OrganizationID)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -2153,6 +2153,10 @@ func TestExecutorPrebuilds(t *testing.T) {
 		userClient, user := coderdtest.CreateAnotherUser(t, client, owner.OrganizationID, rbac.RoleMember())
 		version := coderdtest.CreateTemplateVersion(t, client, owner.OrganizationID, templateWithAgentAndPresetsWithPrebuilds(prebuildInstances))
 		coderdtest.AwaitTemplateVersionJobCompleted(t, client, version.ID)
+		
+		// Log template version job details for debugging
+		logTemplateVersionJobDetails(t, client, version.ID)
+		
 		coderdtest.CreateTemplate(t, client, owner.OrganizationID, version.ID, func(ctr *codersdk.CreateTemplateRequest) {
 			// Set a template level Autostart schedule to trigger the autostart daily
 			ctr.AllowUserAutostart = ptr.Ref[bool](true)
@@ -2206,6 +2210,9 @@ func TestExecutorPrebuilds(t *testing.T) {
 		workspace := claimPrebuild(t, ctx, client, userClient, user.Username, version, presets[0].ID)
 		require.Equal(t, prebuild.ID, workspace.ID)
 		require.NotNil(t, workspace.NextStartAt)
+		
+		// Log workspace details for debugging
+		logWorkspaceDetails(t, client, workspace.ID)
 
 		// Given: workspace is stopped
 		workspace = coderdtest.MustTransitionWorkspace(t, client, workspace.ID, codersdk.WorkspaceTransitionStart, codersdk.WorkspaceTransitionStop)
@@ -2268,7 +2275,7 @@ func TestExecutorPrebuilds(t *testing.T) {
 		})
 
 		// Ensure fresh provisioner daemon is available before proceeding
-		mustEnsureFreshProvisioner(t, api.AGPL, client)
+		mustEnsureFreshProvisioner(t, api.AGPL, client, owner.OrganizationID)
 
 		// Setup Prebuild reconciler
 		cache := files.New(prometheus.NewRegistry(), &coderdtest.FakeAuthorizer{})
@@ -3527,13 +3534,56 @@ func TestWorkspaceByOwnerAndName(t *testing.T) {
 	})
 }
 
-// mustEnsureFreshProvisioner ensures there's a fresh active provisioner daemon available
-func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.Client) {
+// logTemplateVersionJobDetails logs the template version job details for debugging
+func logTemplateVersionJobDetails(t *testing.T, client *codersdk.Client, versionID uuid.UUID) {
 	t.Helper()
 	ctx := testutil.Context(t, testutil.WaitShort)
 	
+	version, err := client.TemplateVersion(ctx, versionID)
+	if err != nil {
+		t.Logf("Failed to get template version: %v", err)
+		return
+	}
+	
+	t.Logf("Template version %s job details:", versionID)
+	t.Logf("  Job ID: %s", version.Job.ID)
+	t.Logf("  Job Tags: %+v", version.Job.Tags)
+	t.Logf("  Job Status: %s", version.Job.Status)
+	t.Logf("  Organization ID: %s", version.OrganizationID)
+}
+
+// logWorkspaceDetails logs workspace details for debugging
+func logWorkspaceDetails(t *testing.T, client *codersdk.Client, workspaceID uuid.UUID) {
+	t.Helper()
+	ctx := testutil.Context(t, testutil.WaitShort)
+	
+	workspace, err := client.Workspace(ctx, workspaceID)
+	if err != nil {
+		t.Logf("Failed to get workspace: %v", err)
+		return
+	}
+	
+	t.Logf("Workspace %s details:", workspaceID)
+	t.Logf("  Name: %s", workspace.Name)
+	t.Logf("  Organization ID: %s", workspace.OrganizationID)
+	t.Logf("  Template ID: %s", workspace.TemplateID)
+	t.Logf("  Latest Build ID: %s", workspace.LatestBuild.ID)
+	t.Logf("  Latest Build Job ID: %s", workspace.LatestBuild.JobID)
+	t.Logf("  Latest Build Job Tags: %+v", workspace.LatestBuild.Job.Tags)
+}
+
+// mustEnsureFreshProvisioner ensures there's a fresh active provisioner daemon available
+func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.Client, expectedOrgID uuid.UUID) {
+	t.Helper()
+	ctx := testutil.Context(t, testutil.WaitShort)
+	
+	// Log the expected organization ID
+	t.Logf("Creating fresh provisioner daemon for organization: %s", expectedOrgID)
+	
 	// Create a fresh provisioner daemon with the correct tags
 	provisionerTags := map[string]string{"owner": "", "scope": "organization"}
+	t.Logf("Creating provisioner daemon with tags: %+v", provisionerTags)
+	
 	_, err := api.CreateInMemoryTaggedProvisionerDaemon(
 		ctx,
 		"fresh-test-daemon",
@@ -3546,15 +3596,43 @@ func mustEnsureFreshProvisioner(t *testing.T, api *coderd.API, client *codersdk.
 	require.Eventually(t, func() bool {
 		daemons, err := client.ProvisionerDaemons(ctx)
 		if err != nil {
+			t.Logf("Failed to get provisioner daemons: %v", err)
 			return false
 		}
+		
+		t.Logf("Found %d total provisioner daemons", len(daemons))
+		
+		// Log all daemons for debugging
+		for i, daemon := range daemons {
+			t.Logf("Daemon %d: name=%s, org=%s, tags=%+v, lastSeen=%v, valid=%v", 
+				i, daemon.Name, daemon.OrganizationID, daemon.Tags, daemon.LastSeenAt, daemon.LastSeenAt.Valid)
+			if daemon.LastSeenAt.Valid {
+				age := time.Since(daemon.LastSeenAt.Time)
+				t.Logf("  Age: %v", age)
+			}
+		}
+		
 		// Look for our fresh daemon that's active (not stale)
 		for _, daemon := range daemons {
-			if daemon.Name == "fresh-test-daemon" && daemon.LastSeenAt.Valid {
-				age := time.Since(daemon.LastSeenAt.Time)
-				if age <= 5*time.Second { // Should be very fresh
-					t.Logf("Fresh provisioner daemon found: %s, age: %v", daemon.Name, age)
-					return true
+			if daemon.Name == "fresh-test-daemon" {
+				t.Logf("Found our fresh daemon: org=%s (expected=%s), tags=%+v", 
+					daemon.OrganizationID, expectedOrgID, daemon.Tags)
+				
+				if daemon.OrganizationID != expectedOrgID {
+					t.Logf("WARNING: Daemon organization %s does not match expected %s", 
+						daemon.OrganizationID, expectedOrgID)
+				}
+				
+				if daemon.LastSeenAt.Valid {
+					age := time.Since(daemon.LastSeenAt.Time)
+					if age <= 5*time.Second { // Should be very fresh
+						t.Logf("Fresh provisioner daemon is active: %s, age: %v", daemon.Name, age)
+						return true
+					} else {
+						t.Logf("Fresh provisioner daemon is stale: %s, age: %v", daemon.Name, age)
+					}
+				} else {
+					t.Logf("Fresh provisioner daemon has no LastSeenAt: %s", daemon.Name)
 				}
 			}
 		}
