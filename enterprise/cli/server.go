@@ -87,7 +87,6 @@ func (r *RootCmd) Server(_ func()) *serpent.Command {
 		o := &coderd.Options{
 			Options:                   options,
 			AuditLogging:              true,
-			ConnectionLogging:         true,
 			BrowserOnly:               options.DeploymentValues.BrowserOnly.Value(),
 			SCIMAPIKey:                []byte(options.DeploymentValues.SCIMAPIKey.Value()),
 			RBAC:                      true,

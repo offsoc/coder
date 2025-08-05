@@ -118,7 +118,6 @@ func TestExpRpty(t *testing.T) {
 		_ = agenttest.New(t, client.URL, agentToken, func(o *agent.Options) {
 			o.Devcontainers = true
 			o.DevcontainerAPIOptions = append(o.DevcontainerAPIOptions,
-				agentcontainers.WithProjectDiscovery(false),
 				agentcontainers.WithContainerLabelIncludeFilter(wantLabel, "true"),
 			)
 		})

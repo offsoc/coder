@@ -146,7 +146,7 @@ func (api *API) workspaces(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	apiKey := httpmw.APIKey(r)
 
-	page, ok := ParsePagination(rw, r)
+	page, ok := parsePagination(rw, r)
 	if !ok {
 		return
 	}
@@ -701,7 +701,7 @@ func createWorkspace(
 			return xerrors.Errorf("get workspace by ID: %w", err)
 		}
 
-		builder := wsbuilder.New(workspace, database.WorkspaceTransitionStart, *api.BuildUsageChecker.Load()).
+		builder := wsbuilder.New(workspace, database.WorkspaceTransitionStart).
 			Reason(database.BuildReasonInitiator).
 			Initiator(initiatorID).
 			ActiveVersion().
@@ -2231,7 +2231,6 @@ func convertWorkspace(
 	if latestAppStatus.ID == uuid.Nil {
 		appStatus = nil
 	}
-
 	return codersdk.Workspace{
 		ID:                                   workspace.ID,
 		CreatedAt:                            workspace.CreatedAt,
@@ -2266,7 +2265,6 @@ func convertWorkspace(
 		AllowRenames:     allowRenames,
 		Favorite:         requesterFavorite,
 		NextStartAt:      nextStartAt,
-		IsPrebuild:       workspace.IsPrebuild(),
 	}, nil
 }
 

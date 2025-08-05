@@ -417,8 +417,6 @@ func (t TemplateVersionBuilder) Do() TemplateVersionResponse {
 			InvalidateAfterSecs: preset.InvalidateAfterSecs,
 			SchedulingTimezone:  preset.SchedulingTimezone,
 			IsDefault:           false,
-			Description:         preset.Description,
-			Icon:                preset.Icon,
 		})
 	}
 

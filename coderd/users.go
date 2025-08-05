@@ -290,7 +290,7 @@ func (api *API) GetUsers(rw http.ResponseWriter, r *http.Request) ([]database.Us
 		return nil, -1, false
 	}
 
-	paginationParams, ok := ParsePagination(rw, r)
+	paginationParams, ok := parsePagination(rw, r)
 	if !ok {
 		return nil, -1, false
 	}

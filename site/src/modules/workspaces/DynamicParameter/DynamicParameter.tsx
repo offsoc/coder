@@ -5,9 +5,7 @@ import type {
 	WorkspaceBuildParameter,
 } from "api/typesGenerated";
 import { Badge } from "components/Badge/Badge";
-import { Button } from "components/Button/Button";
 import { Checkbox } from "components/Checkbox/Checkbox";
-import { Combobox } from "components/Combobox/Combobox";
 import { ExternalImage } from "components/ExternalImage/ExternalImage";
 import { Input } from "components/Input/Input";
 import { Label } from "components/Label/Label";
@@ -17,8 +15,14 @@ import {
 	type Option,
 } from "components/MultiSelectCombobox/MultiSelectCombobox";
 import { RadioGroup, RadioGroupItem } from "components/RadioGroup/RadioGroup";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "components/Select/Select";
 import { Slider } from "components/Slider/Slider";
-import { Stack } from "components/Stack/Stack";
 import { Switch } from "components/Switch/Switch";
 import { TagInput } from "components/TagInput/TagInput";
 import { Textarea } from "components/Textarea/Textarea";
@@ -32,8 +36,6 @@ import { useDebouncedValue } from "hooks/debounce";
 import { useEffectEvent } from "hooks/hookPolyfills";
 import {
 	CircleAlert,
-	Eye,
-	EyeOff,
 	Hourglass,
 	Info,
 	LinkIcon,
@@ -41,7 +43,6 @@ import {
 	TriangleAlert,
 } from "lucide-react";
 import { type FC, useEffect, useId, useRef, useState } from "react";
-import { cn } from "utils/cn";
 import type { AutofillBuildParameter } from "utils/richParameters";
 import * as Yup from "yup";
 
@@ -77,14 +78,14 @@ export const DynamicParameter: FC<DynamicParameterProps> = ({
 			/>
 			<div className="max-w-lg">
 				{parameter.form_type === "input" ||
-				parameter.form_type === "textarea" ||
-				parameter.form_type === "slider" ? (
+				parameter.form_type === "textarea" ? (
 					<DebouncedParameterField
 						id={id}
 						parameter={parameter}
 						value={value}
 						onChange={onChange}
 						disabled={disabled}
+						isPreset={isPreset}
 					/>
 				) : (
 					<ParameterField
@@ -250,6 +251,7 @@ interface DebouncedParameterFieldProps {
 	onChange: (value: string) => void;
 	disabled?: boolean;
 	id: string;
+	isPreset?: boolean;
 }
 
 const DebouncedParameterField: FC<DebouncedParameterFieldProps> = ({
@@ -258,24 +260,24 @@ const DebouncedParameterField: FC<DebouncedParameterFieldProps> = ({
 	onChange,
 	disabled,
 	id,
+	isPreset,
 }) => {
 	const [localValue, setLocalValue] = useState(
 		value !== undefined ? value : validValue(parameter.value),
 	);
-	const [showMaskedInput, setShowMaskedInput] = useState(false);
 	const debouncedLocalValue = useDebouncedValue(localValue, 500);
 	const onChangeEvent = useEffectEvent(onChange);
 	// prevDebouncedValueRef is to prevent calling the onChangeEvent on the initial render
 	const prevDebouncedValueRef = useRef<string | undefined>();
 	const prevValueRef = useRef(value);
 
-	// Necessary for dynamic defaults or fields being set by preset parameters
+	// This is necessary in the case of fields being set by preset parameters
 	useEffect(() => {
-		if (value !== undefined && value !== prevValueRef.current) {
+		if (isPreset && value !== undefined && value !== prevValueRef.current) {
 			setLocalValue(value);
 			prevValueRef.current = value;
 		}
-	}, [value]);
+	}, [value, isPreset]);
 
 	useEffect(() => {
 		// Only call onChangeEvent if debouncedLocalValue is different from the previously committed value
@@ -307,56 +309,27 @@ const DebouncedParameterField: FC<DebouncedParameterFieldProps> = ({
 	switch (parameter.form_type) {
 		case "textarea": {
 			return (
-				<Stack direction="row" spacing={0} alignItems="center">
-					<Textarea
-						ref={textareaRef}
-						id={id}
-						className={cn(
-							"overflow-y-auto max-h-[500px]",
-							parameter.styling?.mask_input &&
-								!showMaskedInput &&
-								"[-webkit-text-security:disc]",
-						)}
-						value={localValue}
-						onChange={(e) => {
-							const target = e.currentTarget;
-							target.style.height = "auto";
-							target.style.height = `${target.scrollHeight}px`;
+				<Textarea
+					ref={textareaRef}
+					id={id}
+					className="overflow-y-auto max-h-[500px]"
+					value={localValue}
+					onChange={(e) => {
+						const target = e.currentTarget;
+						target.style.height = "auto";
+						target.style.height = `${target.scrollHeight}px`;
 
-							setLocalValue(e.target.value);
-						}}
-						disabled={disabled}
-						placeholder={parameter.styling?.placeholder}
-						required={parameter.required}
-					/>
-					{parameter.styling?.mask_input && (
-						<Button
-							type="button"
-							variant="subtle"
-							size="icon"
-							onMouseDown={() => setShowMaskedInput(true)}
-							onMouseOut={() => setShowMaskedInput(false)}
-							onMouseUp={() => setShowMaskedInput(false)}
-							disabled={disabled}
-						>
-							{showMaskedInput ? (
-								<EyeOff className="h-4 w-4" />
-							) : (
-								<Eye className="h-4 w-4" />
-							)}
-						</Button>
-					)}
-				</Stack>
+						setLocalValue(e.target.value);
+					}}
+					disabled={disabled}
+					placeholder={parameter.styling?.placeholder}
+					required={parameter.required}
+				/>
 			);
 		}
 
 		case "input": {
-			const inputType =
-				parameter.type === "number"
-					? "number"
-					: parameter.styling?.mask_input && !showMaskedInput
-						? "password"
-						: "text";
+			const inputType = parameter.type === "number" ? "number" : "text";
 			const inputProps: Record<string, unknown> = {};
 
 			if (parameter.type === "number") {
@@ -373,62 +346,18 @@ const DebouncedParameterField: FC<DebouncedParameterFieldProps> = ({
 			}
 
 			return (
-				<Stack direction="row" spacing={0} alignItems="center">
-					<Input
-						id={id}
-						type={inputType}
-						value={localValue}
-						onChange={(e) => {
-							setLocalValue(e.target.value);
-						}}
-						disabled={disabled}
-						required={parameter.required}
-						placeholder={parameter.styling?.placeholder}
-						{...inputProps}
-					/>
-					{parameter.styling?.mask_input && parameter.type !== "number" && (
-						<Button
-							type="button"
-							variant="subtle"
-							size="icon"
-							onMouseDown={() => setShowMaskedInput(true)}
-							onMouseOut={() => setShowMaskedInput(false)}
-							onMouseUp={() => setShowMaskedInput(false)}
-							disabled={disabled}
-						>
-							{showMaskedInput ? (
-								<EyeOff className="h-4 w-4" />
-							) : (
-								<Eye className="h-4 w-4" />
-							)}
-						</Button>
-					)}
-				</Stack>
-			);
-		}
-
-		case "slider": {
-			const numericValue = Number.isFinite(Number(localValue))
-				? Number(localValue)
-				: 0;
-			const { validation_min: min = 0, validation_max: max = 100 } =
-				parameter.validations[0] ?? {};
-
-			return (
-				<div className="flex flex-row items-baseline gap-3">
-					<Slider
-						id={id}
-						className="mt-2"
-						value={[numericValue]}
-						onValueChange={([value]) => {
-							setLocalValue(value.toString());
-						}}
-						min={min ?? undefined}
-						max={max ?? undefined}
-						disabled={disabled}
-					/>
-					<span className="w-4 font-medium">{numericValue}</span>
-				</div>
+				<Input
+					id={id}
+					type={inputType}
+					value={localValue}
+					onChange={(e) => {
+						setLocalValue(e.target.value);
+					}}
+					disabled={disabled}
+					required={parameter.required}
+					placeholder={parameter.styling?.placeholder}
+					{...inputProps}
+				/>
 			);
 		}
 	}
@@ -451,17 +380,43 @@ const ParameterField: FC<ParameterFieldProps> = ({
 }) => {
 	switch (parameter.form_type) {
 		case "dropdown": {
+			const EMPTY_VALUE_PLACEHOLDER = "__EMPTY_STRING__";
+			const selectValue = value === "" ? EMPTY_VALUE_PLACEHOLDER : value;
+			const handleSelectChange = (newValue: string) => {
+				onChange(newValue === EMPTY_VALUE_PLACEHOLDER ? "" : newValue);
+			};
+
 			return (
-				<Combobox
-					value={value ?? ""}
-					onSelect={(value) => onChange(value)}
-					options={parameter.options.map((option) => ({
-						icon: option.icon,
-						displayName: option.name,
-						value: option.value.value,
-						description: option.description,
-					}))}
-				/>
+				<Select
+					onValueChange={handleSelectChange}
+					value={selectValue}
+					disabled={disabled}
+					required={parameter.required}
+				>
+					<SelectTrigger id={id}>
+						<SelectValue
+							placeholder={parameter.styling?.placeholder || "Select option"}
+						/>
+					</SelectTrigger>
+					<SelectContent>
+						{parameter.options.map((option, index) => {
+							const optionValue =
+								option.value.value === ""
+									? EMPTY_VALUE_PLACEHOLDER
+									: option.value.value;
+							return (
+								<SelectItem
+									key={
+										option.value.value || `${EMPTY_VALUE_PLACEHOLDER}:${index}`
+									}
+									value={optionValue}
+								>
+									<OptionDisplay option={option} />
+								</SelectItem>
+							);
+						})}
+					</SelectContent>
+				</Select>
 			);
 		}
 
@@ -478,8 +433,6 @@ const ParameterField: FC<ParameterFieldProps> = ({
 			const options: Option[] = parameter.options.map((opt) => ({
 				value: opt.value.value,
 				label: opt.name,
-				icon: opt.icon,
-				description: opt.description,
 				disable: false,
 			}));
 
@@ -497,7 +450,9 @@ const ParameterField: FC<ParameterFieldProps> = ({
 
 			return (
 				<MultiSelectCombobox
-					inputProps={{ id }}
+					inputProps={{
+						id: id,
+					}}
 					options={options}
 					defaultOptions={selectedOptions}
 					onChange={(newValues) => {
@@ -587,6 +542,25 @@ const ParameterField: FC<ParameterFieldProps> = ({
 				</div>
 			);
 
+		case "slider":
+			return (
+				<div className="flex flex-row items-baseline gap-3">
+					<Slider
+						id={id}
+						className="mt-2"
+						value={[Number.isFinite(Number(value)) ? Number(value) : 0]}
+						onValueChange={([value]) => {
+							onChange(value.toString());
+						}}
+						min={parameter.validations[0]?.validation_min ?? 0}
+						max={parameter.validations[0]?.validation_max ?? 100}
+						disabled={disabled}
+					/>
+					<span className="w-4 font-medium">
+						{Number.isFinite(Number(value)) ? value : "0"}
+					</span>
+				</div>
+			);
 		case "error":
 			return <Diagnostics diagnostics={parameter.diagnostics} />;
 	}
@@ -723,7 +697,7 @@ const isValidParameterOption = (
 			if (Array.isArray(parsed)) {
 				values = parsed;
 			}
-		} catch {
+		} catch (e) {
 			return false;
 		}
 
@@ -924,12 +898,12 @@ export const Diagnostics: FC<DiagnosticsProps> = ({ diagnostics }) => {
 			{diagnostics.map((diagnostic, index) => (
 				<div
 					key={`diagnostic-${diagnostic.summary}-${index}`}
-					className={cn(
-						"text-xs font-semibold flex flex-col rounded-md border px-3.5 py-3.5 border-solid",
-						diagnostic.severity === "error"
-							? "text-content-primary border-border-destructive bg-content-destructive/15"
-							: "text-content-primary border-border-warning bg-content-warning/15",
-					)}
+					className={`text-xs font-semibold flex flex-col rounded-md border px-3.5 py-3.5 border-solid
+                        ${
+													diagnostic.severity === "error"
+														? "text-content-primary border-border-destructive bg-content-destructive/15"
+														: "text-content-primary border-border-warning bg-content-warning/15"
+												}`}
 				>
 					<div className="flex flex-row items-start">
 						{diagnostic.severity === "error" && (

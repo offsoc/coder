@@ -26,7 +26,6 @@ const (
 	ResourceTypeConvertLogin          ResourceType = "convert_login"
 	ResourceTypeHealthSettings        ResourceType = "health_settings"
 	ResourceTypeNotificationsSettings ResourceType = "notifications_settings"
-	ResourceTypePrebuildsSettings     ResourceType = "prebuilds_settings"
 	ResourceTypeWorkspaceProxy        ResourceType = "workspace_proxy"
 	ResourceTypeOrganization          ResourceType = "organization"
 	ResourceTypeOAuth2ProviderApp     ResourceType = "oauth2_provider_app"
@@ -38,12 +37,8 @@ const (
 	ResourceTypeIdpSyncSettingsOrganization ResourceType = "idp_sync_settings_organization"
 	ResourceTypeIdpSyncSettingsGroup        ResourceType = "idp_sync_settings_group"
 	ResourceTypeIdpSyncSettingsRole         ResourceType = "idp_sync_settings_role"
-	// Deprecated: Workspace Agent connections are now included in the
-	// connection log.
-	ResourceTypeWorkspaceAgent ResourceType = "workspace_agent"
-	// Deprecated: Workspace App connections are now included in the
-	// connection log.
-	ResourceTypeWorkspaceApp ResourceType = "workspace_app"
+	ResourceTypeWorkspaceAgent              ResourceType = "workspace_agent"
+	ResourceTypeWorkspaceApp                ResourceType = "workspace_app"
 )
 
 func (r ResourceType) FriendlyString() string {
@@ -78,8 +73,6 @@ func (r ResourceType) FriendlyString() string {
 		return "health_settings"
 	case ResourceTypeNotificationsSettings:
 		return "notifications_settings"
-	case ResourceTypePrebuildsSettings:
-		return "prebuilds_settings"
 	case ResourceTypeOAuth2ProviderApp:
 		return "oauth2 app"
 	case ResourceTypeOAuth2ProviderAppSecret:
@@ -117,17 +110,10 @@ const (
 	AuditActionLogout               AuditAction = "logout"
 	AuditActionRegister             AuditAction = "register"
 	AuditActionRequestPasswordReset AuditAction = "request_password_reset"
-	// Deprecated: Workspace connections are now included in the
-	// connection log.
-	AuditActionConnect AuditAction = "connect"
-	// Deprecated: Workspace disconnections are now included in the
-	// connection log.
-	AuditActionDisconnect AuditAction = "disconnect"
-	// Deprecated: Workspace App connections are now included in the
-	// connection log.
-	AuditActionOpen AuditAction = "open"
-	// Deprecated: This action is unused.
-	AuditActionClose AuditAction = "close"
+	AuditActionConnect              AuditAction = "connect"
+	AuditActionDisconnect           AuditAction = "disconnect"
+	AuditActionOpen                 AuditAction = "open"
+	AuditActionClose                AuditAction = "close"
 )
 
 func (a AuditAction) Friendly() string {

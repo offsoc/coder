@@ -33,7 +33,6 @@ func (r *RootCmd) templates() *serpent.Command {
 			r.templateList(),
 			r.templatePush(),
 			r.templateVersions(),
-			r.templatePresets(),
 			r.templateDelete(),
 			r.templatePull(),
 			r.archiveTemplateVersions(),

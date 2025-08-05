@@ -170,16 +170,14 @@ const TerminalAlert: FC<AlertProps> = (props) => {
 	);
 };
 
-// Since the terminal connection is always trying to reconnect, we show this
-// alert to indicate that the terminal is trying to connect.
 const DisconnectedAlert: FC<AlertProps> = (props) => {
 	return (
 		<TerminalAlert
 			{...props}
-			severity="info"
+			severity="warning"
 			actions={<RefreshSessionButton />}
 		>
-			Trying to connect...
+			Disconnected
 		</TerminalAlert>
 	);
 };

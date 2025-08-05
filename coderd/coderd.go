@@ -19,9 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/coder/coder/v2/coderd/oauth2provider"
 	"github.com/coder/coder/v2/coderd/prebuilds"
-	"github.com/coder/coder/v2/coderd/wsbuilder"
 
 	"github.com/andybalholm/brotli"
 	"github.com/go-chi/chi/v5"
@@ -60,7 +58,6 @@ import (
 	"github.com/coder/coder/v2/coderd/appearance"
 	"github.com/coder/coder/v2/coderd/audit"
 	"github.com/coder/coder/v2/coderd/awsidentity"
-	"github.com/coder/coder/v2/coderd/connectionlog"
 	"github.com/coder/coder/v2/coderd/database"
 	"github.com/coder/coder/v2/coderd/database/dbauthz"
 	"github.com/coder/coder/v2/coderd/database/dbrollup"
@@ -156,7 +153,6 @@ type Options struct {
 	CacheDir string
 
 	Auditor                        audit.Auditor
-	ConnectionLogger               connectionlog.ConnectionLogger
 	AgentConnectionUpdateFrequency time.Duration
 	AgentInactiveDisconnectTimeout time.Duration
 	AWSCertificates                awsidentity.Certificates
@@ -403,9 +399,6 @@ func New(options *Options) *API {
 	if options.Auditor == nil {
 		options.Auditor = audit.NewNop()
 	}
-	if options.ConnectionLogger == nil {
-		options.ConnectionLogger = connectionlog.NewNop()
-	}
 	if options.SSHConfig.HostnamePrefix == "" {
 		options.SSHConfig.HostnamePrefix = "coder."
 	}
@@ -560,13 +553,6 @@ func New(options *Options) *API {
 	// bugs that may only occur when a key isn't precached in tests and the latency cost is minimal.
 	cryptokeys.StartRotator(ctx, options.Logger, options.Database)
 
-	// AGPL uses a no-op build usage checker as there are no license
-	// entitlements to enforce. This is swapped out in
-	// enterprise/coderd/coderd.go.
-	var buildUsageChecker atomic.Pointer[wsbuilder.UsageChecker]
-	var noopUsageChecker wsbuilder.UsageChecker = wsbuilder.NoopUsageChecker{}
-	buildUsageChecker.Store(&noopUsageChecker)
-
 	api := &API{
 		ctx:          ctx,
 		cancel:       cancel,
@@ -581,13 +567,11 @@ func New(options *Options) *API {
 		},
 		metricsCache:                metricsCache,
 		Auditor:                     atomic.Pointer[audit.Auditor]{},
-		ConnectionLogger:            atomic.Pointer[connectionlog.ConnectionLogger]{},
 		TailnetCoordinator:          atomic.Pointer[tailnet.Coordinator]{},
 		UpdatesProvider:             updatesProvider,
 		TemplateScheduleStore:       options.TemplateScheduleStore,
 		UserQuietHoursScheduleStore: options.UserQuietHoursScheduleStore,
 		AccessControlStore:          options.AccessControlStore,
-		BuildUsageChecker:           &buildUsageChecker,
 		FileCache:                   files.New(options.PrometheusRegistry, options.Authorizer),
 		Experiments:                 experiments,
 		WebpushDispatcher:           options.WebPushDispatcher,
@@ -604,7 +588,7 @@ func New(options *Options) *API {
 		options.Logger.Named("workspaceapps"),
 		options.AccessURL,
 		options.Authorizer,
-		&api.ConnectionLogger,
+		&api.Auditor,
 		options.Database,
 		options.DeploymentValues,
 		oauthConfigs,
@@ -706,7 +690,6 @@ func New(options *Options) *API {
 	}
 
 	api.Auditor.Store(&options.Auditor)
-	api.ConnectionLogger.Store(&options.ConnectionLogger)
 	api.TailnetCoordinator.Store(&options.TailnetCoordinator)
 	dialer := &InmemTailnetDialer{
 		CoordPtr:            &api.TailnetCoordinator,
@@ -798,8 +781,6 @@ func New(options *Options) *API {
 		Optional:                      false,
 		SessionTokenFunc:              nil, // Default behavior
 		PostAuthAdditionalHeadersFunc: options.PostAuthAdditionalHeadersFunc,
-		Logger:                        options.Logger,
-		AccessURL:                     options.AccessURL,
 	})
 	// Same as above but it redirects to the login page.
 	apiKeyMiddlewareRedirect := httpmw.ExtractAPIKeyMW(httpmw.ExtractAPIKeyConfig{
@@ -810,8 +791,6 @@ func New(options *Options) *API {
 		Optional:                      false,
 		SessionTokenFunc:              nil, // Default behavior
 		PostAuthAdditionalHeadersFunc: options.PostAuthAdditionalHeadersFunc,
-		Logger:                        options.Logger,
-		AccessURL:                     options.AccessURL,
 	})
 	// Same as the first but it's optional.
 	apiKeyMiddlewareOptional := httpmw.ExtractAPIKeyMW(httpmw.ExtractAPIKeyConfig{
@@ -822,8 +801,6 @@ func New(options *Options) *API {
 		Optional:                      true,
 		SessionTokenFunc:              nil, // Default behavior
 		PostAuthAdditionalHeadersFunc: options.PostAuthAdditionalHeadersFunc,
-		Logger:                        options.Logger,
-		AccessURL:                     options.AccessURL,
 	})
 
 	workspaceAgentInfo := httpmw.ExtractWorkspaceAgentAndLatestBuild(httpmw.ExtractWorkspaceAgentAndLatestBuildConfig{
@@ -932,33 +909,21 @@ func New(options *Options) *API {
 		})
 	}
 
-	// OAuth2 metadata endpoint for RFC 8414 discovery
-	r.Get("/.well-known/oauth-authorization-server", api.oauth2AuthorizationServerMetadata())
-	// OAuth2 protected resource metadata endpoint for RFC 9728 discovery
-	r.Get("/.well-known/oauth-protected-resource", api.oauth2ProtectedResourceMetadata())
-
 	// OAuth2 linking routes do not make sense under the /api/v2 path.  These are
 	// for an external application to use Coder as an OAuth2 provider, not for
 	// logging into Coder with an external OAuth2 provider.
 	r.Route("/oauth2", func(r chi.Router) {
 		r.Use(
-			httpmw.RequireExperimentWithDevBypass(api.Experiments, codersdk.ExperimentOAuth2),
+			api.oAuth2ProviderMiddleware,
+			// Fetch the app as system because in the /tokens route there will be no
+			// authenticated user.
+			httpmw.AsAuthzSystem(httpmw.ExtractOAuth2ProviderApp(options.Database)),
 		)
 		r.Route("/authorize", func(r chi.Router) {
-			r.Use(
-				// Fetch the app as system for the authorize endpoint
-				httpmw.AsAuthzSystem(httpmw.ExtractOAuth2ProviderAppWithOAuth2Errors(options.Database)),
-				apiKeyMiddlewareRedirect,
-			)
-			// GET shows the consent page, POST processes the consent
+			r.Use(apiKeyMiddlewareRedirect)
 			r.Get("/", api.getOAuth2ProviderAppAuthorize())
-			r.Post("/", api.postOAuth2ProviderAppAuthorize())
 		})
 		r.Route("/tokens", func(r chi.Router) {
-			r.Use(
-				// Use OAuth2-compliant error responses for the tokens endpoint
-				httpmw.AsAuthzSystem(httpmw.ExtractOAuth2ProviderAppWithOAuth2Errors(options.Database)),
-			)
 			r.Group(func(r chi.Router) {
 				r.Use(apiKeyMiddleware)
 				// DELETE on /tokens is not part of the OAuth2 spec.  It is our own
@@ -970,20 +935,6 @@ func New(options *Options) *API {
 			// we cannot require an API key.
 			r.Post("/", api.postOAuth2ProviderAppToken())
 		})
-
-		// RFC 7591 Dynamic Client Registration - Public endpoint
-		r.Post("/register", api.postOAuth2ClientRegistration())
-
-		// RFC 7592 Client Configuration Management - Protected by registration access token
-		r.Route("/clients/{client_id}", func(r chi.Router) {
-			r.Use(
-				// Middleware to validate registration access token
-				oauth2provider.RequireRegistrationAccessToken(api.Database),
-			)
-			r.Get("/", api.oauth2ClientConfiguration())          // Read client configuration
-			r.Put("/", api.putOAuth2ClientConfiguration())       // Update client configuration
-			r.Delete("/", api.deleteOAuth2ClientConfiguration()) // Delete client
-		})
 	})
 
 	// Experimental routes are not guaranteed to be stable and may change at any time.
@@ -991,13 +942,6 @@ func New(options *Options) *API {
 		r.Use(apiKeyMiddleware)
 		r.Route("/aitasks", func(r chi.Router) {
 			r.Get("/prompts", api.aiTasksPrompts)
-		})
-		r.Route("/mcp", func(r chi.Router) {
-			r.Use(
-				httpmw.RequireExperimentWithDevBypass(api.Experiments, codersdk.ExperimentOAuth2, codersdk.ExperimentMCPServerHTTP),
-			)
-			// MCP HTTP transport endpoint with mandatory authentication
-			r.Mount("/http", api.mcpHTTPHandler())
 		})
 	})
 
@@ -1370,7 +1314,6 @@ func New(options *Options) *API {
 				r.Get("/listening-ports", api.workspaceAgentListeningPorts)
 				r.Get("/connection", api.workspaceAgentConnection)
 				r.Get("/containers", api.workspaceAgentListContainers)
-				r.Get("/containers/watch", api.watchWorkspaceAgentContainers)
 				r.Post("/containers/devcontainers/{devcontainer}/recreate", api.workspaceAgentRecreateDevcontainer)
 				r.Get("/coordinate", api.workspaceAgentClientCoordinate)
 
@@ -1497,25 +1440,25 @@ func New(options *Options) *API {
 		r.Route("/oauth2-provider", func(r chi.Router) {
 			r.Use(
 				apiKeyMiddleware,
-				httpmw.RequireExperimentWithDevBypass(api.Experiments, codersdk.ExperimentOAuth2),
+				api.oAuth2ProviderMiddleware,
 			)
 			r.Route("/apps", func(r chi.Router) {
-				r.Get("/", api.oAuth2ProviderApps())
-				r.Post("/", api.postOAuth2ProviderApp())
+				r.Get("/", api.oAuth2ProviderApps)
+				r.Post("/", api.postOAuth2ProviderApp)
 
 				r.Route("/{app}", func(r chi.Router) {
 					r.Use(httpmw.ExtractOAuth2ProviderApp(options.Database))
-					r.Get("/", api.oAuth2ProviderApp())
-					r.Put("/", api.putOAuth2ProviderApp())
-					r.Delete("/", api.deleteOAuth2ProviderApp())
+					r.Get("/", api.oAuth2ProviderApp)
+					r.Put("/", api.putOAuth2ProviderApp)
+					r.Delete("/", api.deleteOAuth2ProviderApp)
 
 					r.Route("/secrets", func(r chi.Router) {
-						r.Get("/", api.oAuth2ProviderAppSecrets())
-						r.Post("/", api.postOAuth2ProviderAppSecret())
+						r.Get("/", api.oAuth2ProviderAppSecrets)
+						r.Post("/", api.postOAuth2ProviderAppSecret)
 
 						r.Route("/{secretID}", func(r chi.Router) {
 							r.Use(httpmw.ExtractOAuth2ProviderAppSecret(options.Database))
-							r.Delete("/", api.deleteOAuth2ProviderAppSecret())
+							r.Delete("/", api.deleteOAuth2ProviderAppSecret)
 						})
 					})
 				})
@@ -1632,7 +1575,6 @@ type API struct {
 	// specific replica.
 	ID                                uuid.UUID
 	Auditor                           atomic.Pointer[audit.Auditor]
-	ConnectionLogger                  atomic.Pointer[connectionlog.ConnectionLogger]
 	WorkspaceClientCoordinateOverride atomic.Pointer[func(rw http.ResponseWriter) bool]
 	TailnetCoordinator                atomic.Pointer[tailnet.Coordinator]
 	NetworkTelemetryBatcher           *tailnet.NetworkTelemetryBatcher
@@ -1659,9 +1601,6 @@ type API struct {
 	FileCache           *files.Cache
 	PrebuildsClaimer    atomic.Pointer[prebuilds.Claimer]
 	PrebuildsReconciler atomic.Pointer[prebuilds.ReconciliationOrchestrator]
-	// BuildUsageChecker is a pointer as it's passed around to multiple
-	// components.
-	BuildUsageChecker *atomic.Pointer[wsbuilder.UsageChecker]
 
 	UpdatesProvider tailnet.WorkspaceUpdatesProvider
 

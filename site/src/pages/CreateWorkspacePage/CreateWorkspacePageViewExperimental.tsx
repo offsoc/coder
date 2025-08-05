@@ -5,6 +5,7 @@ import { ErrorAlert } from "components/Alert/ErrorAlert";
 import { Avatar } from "components/Avatar/Avatar";
 import { Badge } from "components/Badge/Badge";
 import { Button } from "components/Button/Button";
+import { FeatureStageBadge } from "components/FeatureStageBadge/FeatureStageBadge";
 import { Input } from "components/Input/Input";
 import { Label } from "components/Label/Label";
 import { Link } from "components/Link/Link";
@@ -26,7 +27,7 @@ import {
 import { UserAutocomplete } from "components/UserAutocomplete/UserAutocomplete";
 import { type FormikContextType, useFormik } from "formik";
 import type { ExternalAuthPollingState } from "hooks/useExternalAuth";
-import { ArrowLeft, CircleHelp, ExternalLinkIcon } from "lucide-react";
+import { ArrowLeft, CircleHelp } from "lucide-react";
 import { useSyncFormParameters } from "modules/hooks/useSyncFormParameters";
 import {
 	Diagnostics,
@@ -43,7 +44,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { Link as RouterLink } from "react-router-dom";
 import { docs } from "utils/docs";
 import { nameValidator } from "utils/formUtils";
 import type { AutofillBuildParameter } from "utils/richParameters";
@@ -54,7 +54,6 @@ import type { CreateWorkspacePermissions } from "./permissions";
 
 interface CreateWorkspacePageViewExperimentalProps {
 	autofillParameters: AutofillBuildParameter[];
-	canUpdateTemplate?: boolean;
 	creatingWorkspace: boolean;
 	defaultName?: string | null;
 	defaultOwner: TypesGen.User;
@@ -86,7 +85,6 @@ export const CreateWorkspacePageViewExperimental: FC<
 	CreateWorkspacePageViewExperimentalProps
 > = ({
 	autofillParameters,
-	canUpdateTemplate,
 	creatingWorkspace,
 	defaultName,
 	defaultOwner,
@@ -381,16 +379,6 @@ export const CreateWorkspacePageViewExperimental: FC<
 								</Badge>
 							)}
 						</span>
-						{canUpdateTemplate && (
-							<Button asChild size="sm" variant="outline">
-								<RouterLink
-									to={`/templates/${template.organization_name}/${template.name}/versions/${versionId}/edit`}
-								>
-									<ExternalLinkIcon />
-									View source
-								</RouterLink>
-							</Button>
-						)}
 					</div>
 					<span className="flex flex-row items-center gap-2">
 						<h1 className="text-3xl font-semibold m-0">New workspace</h1>
@@ -407,7 +395,7 @@ export const CreateWorkspacePageViewExperimental: FC<
 									<br />
 									<Link
 										href={docs(
-											"/admin/templates/extending-templates/dynamic-parameters",
+											"/admin/templates/extending-templates/parameters#enable-dynamic-parameters-early-access",
 										)}
 									>
 										View docs
@@ -416,6 +404,11 @@ export const CreateWorkspacePageViewExperimental: FC<
 							</Tooltip>
 						</TooltipProvider>
 					</span>
+					<FeatureStageBadge
+						contentType={"beta"}
+						size="sm"
+						labelText="Dynamic parameters"
+					/>
 				</header>
 
 				<form
@@ -555,7 +548,7 @@ export const CreateWorkspacePageViewExperimental: FC<
 									parameters cannot be modified once the workspace is created.
 									<Link
 										href={docs(
-											"/admin/templates/extending-templates/dynamic-parameters",
+											"/admin/templates/extending-templates/parameters#enable-dynamic-parameters-early-access",
 										)}
 									>
 										View docs

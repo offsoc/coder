@@ -45,46 +45,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/.well-known/oauth-authorization-server": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "OAuth2 authorization server metadata.",
-                "operationId": "oauth2-authorization-server-metadata",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2AuthorizationServerMetadata"
-                        }
-                    }
-                }
-            }
-        },
-        "/.well-known/oauth-protected-resource": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "OAuth2 protected resource metadata.",
-                "operationId": "oauth2-protected-resource-metadata",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ProtectedResourceMetadata"
-                        }
-                    }
-                }
-            }
-        },
         "/appearance": {
             "get": {
                 "security": [
@@ -378,52 +338,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/codersdk.BuildInfoResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/connectionlog": {
-            "get": {
-                "security": [
-                    {
-                        "CoderSessionToken": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "Get connection logs",
-                "operationId": "get-connection-logs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Search query",
-                        "name": "q",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page limit",
-                        "name": "limit",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.ConnectionLogResponse"
                         }
                     }
                 }
@@ -2259,61 +2173,6 @@ const docTemplate = `{
             }
         },
         "/oauth2/authorize": {
-            "get": {
-                "security": [
-                    {
-                        "CoderSessionToken": []
-                    }
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "OAuth2 authorization request (GET - show authorization page).",
-                "operationId": "oauth2-authorization-request-get",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Client ID",
-                        "name": "client_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "A random unguessable string",
-                        "name": "state",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "enum": [
-                            "code"
-                        ],
-                        "type": "string",
-                        "description": "Response type",
-                        "name": "response_type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Redirect here after authorization",
-                        "name": "redirect_uri",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Token scopes (currently ignored)",
-                        "name": "scope",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Returns HTML authorization page"
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -2323,8 +2182,8 @@ const docTemplate = `{
                 "tags": [
                     "Enterprise"
                 ],
-                "summary": "OAuth2 authorization request (POST - process authorization).",
-                "operationId": "oauth2-authorization-request-post",
+                "summary": "OAuth2 authorization request.",
+                "operationId": "oauth2-authorization-request",
                 "parameters": [
                     {
                         "type": "string",
@@ -2365,133 +2224,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "302": {
-                        "description": "Returns redirect with authorization code"
-                    }
-                }
-            }
-        },
-        "/oauth2/clients/{client_id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "Get OAuth2 client configuration (RFC 7592)",
-                "operationId": "get-oauth2-client-configuration",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Client ID",
-                        "name": "client_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ClientConfiguration"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "Update OAuth2 client configuration (RFC 7592)",
-                "operationId": "put-oauth2-client-configuration",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Client ID",
-                        "name": "client_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Client update request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ClientRegistrationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ClientConfiguration"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "Delete OAuth2 client registration (RFC 7592)",
-                "operationId": "delete-oauth2-client-configuration",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Client ID",
-                        "name": "client_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    }
-                }
-            }
-        },
-        "/oauth2/register": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Enterprise"
-                ],
-                "summary": "OAuth2 dynamic client registration (RFC 7591)",
-                "operationId": "oauth2-dynamic-client-registration",
-                "parameters": [
-                    {
-                        "description": "Client registration request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ClientRegistrationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.OAuth2ClientRegistrationResponse"
-                        }
+                        "description": "Found"
                     }
                 }
             }
@@ -4486,71 +4219,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/prebuilds/settings": {
-            "get": {
-                "security": [
-                    {
-                        "CoderSessionToken": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Prebuilds"
-                ],
-                "summary": "Get prebuilds settings",
-                "operationId": "get-prebuilds-settings",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.PrebuildsSettings"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "CoderSessionToken": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Prebuilds"
-                ],
-                "summary": "Update prebuilds settings",
-                "operationId": "update-prebuilds-settings",
-                "parameters": [
-                    {
-                        "description": "Prebuilds settings request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.PrebuildsSettings"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.PrebuildsSettings"
-                        }
-                    },
-                    "304": {
-                        "description": "Not Modified"
-                    }
-                }
-            }
-        },
         "/provisionerkeys/{provisionerkey}": {
             "get": {
                 "security": [
@@ -5257,7 +4925,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/codersdk.TemplateACL"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/codersdk.TemplateUser"
+                            }
                         }
                     }
                 }
@@ -8824,41 +8495,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/workspaceagents/{workspaceagent}/containers/watch": {
-            "get": {
-                "security": [
-                    {
-                        "CoderSessionToken": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Agents"
-                ],
-                "summary": "Watch workspace agent for container updates.",
-                "operationId": "watch-workspace-agent-for-container-updates",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Workspace agent ID",
-                        "name": "workspaceagent",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/codersdk.WorkspaceAgentListContainersResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/workspaceagents/{workspaceagent}/coordinate": {
             "get": {
                 "security": [
@@ -9203,16 +8839,6 @@ const docTemplate = `{
                         "name": "workspacebuild",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "enum": [
-                            "running",
-                            "pending"
-                        ],
-                        "type": "string",
-                        "description": "Expected status of the job. If expect_status is supplied, the request will be rejected with 412 Precondition Failed if the job doesn't match the state when performing the cancellation.",
-                        "name": "expect_status",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -11448,23 +11074,13 @@ const docTemplate = `{
                 "initiator",
                 "autostart",
                 "autostop",
-                "dormancy",
-                "dashboard",
-                "cli",
-                "ssh_connection",
-                "vscode_connection",
-                "jetbrains_connection"
+                "dormancy"
             ],
             "x-enum-varnames": [
                 "BuildReasonInitiator",
                 "BuildReasonAutostart",
                 "BuildReasonAutostop",
-                "BuildReasonDormancy",
-                "BuildReasonDashboard",
-                "BuildReasonCLI",
-                "BuildReasonSSHConnection",
-                "BuildReasonVSCodeConnection",
-                "BuildReasonJetbrainsConnection"
+                "BuildReasonDormancy"
             ]
         },
         "codersdk.ChangePasswordWithOneTimePasscodeRequest": {
@@ -11499,139 +11115,6 @@ const docTemplate = `{
                     "example": 119.832
                 }
             }
-        },
-        "codersdk.ConnectionLog": {
-            "type": "object",
-            "properties": {
-                "agent_name": {
-                    "type": "string"
-                },
-                "connect_time": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "ip": {
-                    "type": "string"
-                },
-                "organization": {
-                    "$ref": "#/definitions/codersdk.MinimalOrganization"
-                },
-                "ssh_info": {
-                    "description": "SSHInfo is only set when ` + "`" + `type` + "`" + ` is one of:\n- ` + "`" + `ConnectionTypeSSH` + "`" + `\n- ` + "`" + `ConnectionTypeReconnectingPTY` + "`" + `\n- ` + "`" + `ConnectionTypeVSCode` + "`" + `\n- ` + "`" + `ConnectionTypeJetBrains` + "`" + `",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.ConnectionLogSSHInfo"
-                        }
-                    ]
-                },
-                "type": {
-                    "$ref": "#/definitions/codersdk.ConnectionType"
-                },
-                "web_info": {
-                    "description": "WebInfo is only set when ` + "`" + `type` + "`" + ` is one of:\n- ` + "`" + `ConnectionTypePortForwarding` + "`" + `\n- ` + "`" + `ConnectionTypeWorkspaceApp` + "`" + `",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.ConnectionLogWebInfo"
-                        }
-                    ]
-                },
-                "workspace_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "workspace_name": {
-                    "type": "string"
-                },
-                "workspace_owner_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "workspace_owner_username": {
-                    "type": "string"
-                }
-            }
-        },
-        "codersdk.ConnectionLogResponse": {
-            "type": "object",
-            "properties": {
-                "connection_logs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/codersdk.ConnectionLog"
-                    }
-                },
-                "count": {
-                    "type": "integer"
-                }
-            }
-        },
-        "codersdk.ConnectionLogSSHInfo": {
-            "type": "object",
-            "properties": {
-                "connection_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "disconnect_reason": {
-                    "description": "DisconnectReason is omitted if a disconnect event with the same connection ID\nhas not yet been seen.",
-                    "type": "string"
-                },
-                "disconnect_time": {
-                    "description": "DisconnectTime is omitted if a disconnect event with the same connection ID\nhas not yet been seen.",
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "exit_code": {
-                    "description": "ExitCode is the exit code of the SSH session. It is omitted if a\ndisconnect event with the same connection ID has not yet been seen.",
-                    "type": "integer"
-                }
-            }
-        },
-        "codersdk.ConnectionLogWebInfo": {
-            "type": "object",
-            "properties": {
-                "slug_or_port": {
-                    "type": "string"
-                },
-                "status_code": {
-                    "description": "StatusCode is the HTTP status code of the request.",
-                    "type": "integer"
-                },
-                "user": {
-                    "description": "User is omitted if the connection event was from an unauthenticated user.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.User"
-                        }
-                    ]
-                },
-                "user_agent": {
-                    "type": "string"
-                }
-            }
-        },
-        "codersdk.ConnectionType": {
-            "type": "string",
-            "enum": [
-                "ssh",
-                "vscode",
-                "jetbrains",
-                "reconnecting_pty",
-                "workspace_app",
-                "port_forwarding"
-            ],
-            "x-enum-varnames": [
-                "ConnectionTypeSSH",
-                "ConnectionTypeVSCode",
-                "ConnectionTypeJetBrains",
-                "ConnectionTypeReconnectingPTY",
-                "ConnectionTypeWorkspaceApp",
-                "ConnectionTypePortForwarding"
-            ]
         },
         "codersdk.ConvertLoginRequest": {
             "type": "object",
@@ -11856,10 +11339,6 @@ const docTemplate = `{
                     "description": "RequireActiveVersion mandates that workspaces are built with the active\ntemplate version.",
                     "type": "boolean"
                 },
-                "template_use_classic_parameter_flow": {
-                    "description": "UseClassicParameterFlow allows optionally specifying whether\nthe template should use the classic parameter flow. The default if unset is\ntrue, and is why ` + "`" + `*bool` + "`" + ` is used here. When dynamic parameters becomes\nthe default, this will default to false.",
-                    "type": "boolean"
-                },
                 "template_version_id": {
                     "description": "VersionID is an in-progress or completed job to use as an initial version\nof the template.\n\nThis is required on creation to enable a user-flow of validating a\ntemplate works. There is no reason the data-model cannot support empty\ntemplates, but it doesn't make sense for users.",
                     "type": "string",
@@ -11944,73 +11423,7 @@ const docTemplate = `{
             }
         },
         "codersdk.CreateTestAuditLogRequest": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "enum": [
-                        "create",
-                        "write",
-                        "delete",
-                        "start",
-                        "stop"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.AuditAction"
-                        }
-                    ]
-                },
-                "additional_fields": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "build_reason": {
-                    "enum": [
-                        "autostart",
-                        "autostop",
-                        "initiator"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.BuildReason"
-                        }
-                    ]
-                },
-                "organization_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "request_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "resource_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "resource_type": {
-                    "enum": [
-                        "template",
-                        "template_version",
-                        "user",
-                        "workspace",
-                        "workspace_build",
-                        "git_ssh_key",
-                        "auditable_group"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.ResourceType"
-                        }
-                    ]
-                },
-                "time": {
-                    "type": "string",
-                    "format": "date-time"
-                }
-            }
+            "type": "object"
         },
         "codersdk.CreateTokenRequest": {
             "type": "object",
@@ -12080,23 +11493,6 @@ const docTemplate = `{
                 }
             }
         },
-        "codersdk.CreateWorkspaceBuildReason": {
-            "type": "string",
-            "enum": [
-                "dashboard",
-                "cli",
-                "ssh_connection",
-                "vscode_connection",
-                "jetbrains_connection"
-            ],
-            "x-enum-varnames": [
-                "CreateWorkspaceBuildReasonDashboard",
-                "CreateWorkspaceBuildReasonCLI",
-                "CreateWorkspaceBuildReasonSSHConnection",
-                "CreateWorkspaceBuildReasonVSCodeConnection",
-                "CreateWorkspaceBuildReasonJetbrainsConnection"
-            ]
-        },
         "codersdk.CreateWorkspaceBuildRequest": {
             "type": "object",
             "required": [
@@ -12120,21 +11516,6 @@ const docTemplate = `{
                 "orphan": {
                     "description": "Orphan may be set for the Destroy transition.",
                     "type": "boolean"
-                },
-                "reason": {
-                    "description": "Reason sets the reason for the workspace build.",
-                    "enum": [
-                        "dashboard",
-                        "cli",
-                        "ssh_connection",
-                        "vscode_connection",
-                        "jetbrains_connection"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.CreateWorkspaceBuildReason"
-                        }
-                    ]
                 },
                 "rich_parameter_values": {
                     "description": "ParameterValues are optional. It will write params to the 'workspace' scope.\nThis will overwrite any existing parameters with the same name.\nThis will not delete old params not included in this list.",
@@ -12561,6 +11942,9 @@ const docTemplate = `{
                 "http_cookies": {
                     "$ref": "#/definitions/codersdk.HTTPCookieConfig"
                 },
+                "in_memory_database": {
+                    "type": "boolean"
+                },
                 "job_hang_detector_interval": {
                     "type": "integer"
                 },
@@ -12812,16 +12196,12 @@ const docTemplate = `{
                 "auto-fill-parameters",
                 "notifications",
                 "workspace-usage",
-                "web-push",
-                "oauth2",
-                "mcp-server-http"
+                "web-push"
             ],
             "x-enum-comments": {
                 "ExperimentAutoFillParameters": "This should not be taken out of experiments until we have redesigned the feature.",
                 "ExperimentExample": "This isn't used for anything.",
-                "ExperimentMCPServerHTTP": "Enables the MCP HTTP server functionality.",
                 "ExperimentNotifications": "Sends notifications via SMTP and webhooks following certain events.",
-                "ExperimentOAuth2": "Enables OAuth2 provider functionality.",
                 "ExperimentWebPush": "Enables web push notifications through the browser.",
                 "ExperimentWorkspaceUsage": "Enables the new workspace usage tracking."
             },
@@ -12830,9 +12210,7 @@ const docTemplate = `{
                 "ExperimentAutoFillParameters",
                 "ExperimentNotifications",
                 "ExperimentWorkspaceUsage",
-                "ExperimentWebPush",
-                "ExperimentOAuth2",
-                "ExperimentMCPServerHTTP"
+                "ExperimentWebPush"
             ]
         },
         "codersdk.ExternalAuth": {
@@ -13027,18 +12405,6 @@ const docTemplate = `{
                 },
                 "limit": {
                     "type": "integer"
-                },
-                "soft_limit": {
-                    "description": "SoftLimit is the soft limit of the feature, and is only used for showing\nincluded limits in the dashboard. No license validation or warnings are\ngenerated from this value.",
-                    "type": "integer"
-                },
-                "usage_period": {
-                    "description": "UsagePeriod denotes that the usage is a counter that accumulates over\nthis period (and most likely resets with the issuance of the next\nlicense).\n\nThese dates are determined from the license that this entitlement comes\nfrom, see enterprise/coderd/license/license.go.\n\nOnly certain features set these fields:\n- FeatureManagedAgentLimit",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.UsagePeriod"
-                        }
-                    ]
                 }
             }
         },
@@ -13142,8 +12508,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar_url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                 },
                 "display_name": {
                     "type": "string"
@@ -13850,275 +13215,6 @@ const docTemplate = `{
                 }
             }
         },
-        "codersdk.OAuth2AuthorizationServerMetadata": {
-            "type": "object",
-            "properties": {
-                "authorization_endpoint": {
-                    "type": "string"
-                },
-                "code_challenge_methods_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "grant_types_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "issuer": {
-                    "type": "string"
-                },
-                "registration_endpoint": {
-                    "type": "string"
-                },
-                "response_types_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "scopes_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "token_endpoint": {
-                    "type": "string"
-                },
-                "token_endpoint_auth_methods_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "codersdk.OAuth2ClientConfiguration": {
-            "type": "object",
-            "properties": {
-                "client_id": {
-                    "type": "string"
-                },
-                "client_id_issued_at": {
-                    "type": "integer"
-                },
-                "client_name": {
-                    "type": "string"
-                },
-                "client_secret_expires_at": {
-                    "type": "integer"
-                },
-                "client_uri": {
-                    "type": "string"
-                },
-                "contacts": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "grant_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "jwks": {
-                    "type": "object"
-                },
-                "jwks_uri": {
-                    "type": "string"
-                },
-                "logo_uri": {
-                    "type": "string"
-                },
-                "policy_uri": {
-                    "type": "string"
-                },
-                "redirect_uris": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "registration_access_token": {
-                    "type": "string"
-                },
-                "registration_client_uri": {
-                    "type": "string"
-                },
-                "response_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "scope": {
-                    "type": "string"
-                },
-                "software_id": {
-                    "type": "string"
-                },
-                "software_version": {
-                    "type": "string"
-                },
-                "token_endpoint_auth_method": {
-                    "type": "string"
-                },
-                "tos_uri": {
-                    "type": "string"
-                }
-            }
-        },
-        "codersdk.OAuth2ClientRegistrationRequest": {
-            "type": "object",
-            "properties": {
-                "client_name": {
-                    "type": "string"
-                },
-                "client_uri": {
-                    "type": "string"
-                },
-                "contacts": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "grant_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "jwks": {
-                    "type": "object"
-                },
-                "jwks_uri": {
-                    "type": "string"
-                },
-                "logo_uri": {
-                    "type": "string"
-                },
-                "policy_uri": {
-                    "type": "string"
-                },
-                "redirect_uris": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "response_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "scope": {
-                    "type": "string"
-                },
-                "software_id": {
-                    "type": "string"
-                },
-                "software_statement": {
-                    "type": "string"
-                },
-                "software_version": {
-                    "type": "string"
-                },
-                "token_endpoint_auth_method": {
-                    "type": "string"
-                },
-                "tos_uri": {
-                    "type": "string"
-                }
-            }
-        },
-        "codersdk.OAuth2ClientRegistrationResponse": {
-            "type": "object",
-            "properties": {
-                "client_id": {
-                    "type": "string"
-                },
-                "client_id_issued_at": {
-                    "type": "integer"
-                },
-                "client_name": {
-                    "type": "string"
-                },
-                "client_secret": {
-                    "type": "string"
-                },
-                "client_secret_expires_at": {
-                    "type": "integer"
-                },
-                "client_uri": {
-                    "type": "string"
-                },
-                "contacts": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "grant_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "jwks": {
-                    "type": "object"
-                },
-                "jwks_uri": {
-                    "type": "string"
-                },
-                "logo_uri": {
-                    "type": "string"
-                },
-                "policy_uri": {
-                    "type": "string"
-                },
-                "redirect_uris": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "registration_access_token": {
-                    "type": "string"
-                },
-                "registration_client_uri": {
-                    "type": "string"
-                },
-                "response_types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "scope": {
-                    "type": "string"
-                },
-                "software_id": {
-                    "type": "string"
-                },
-                "software_version": {
-                    "type": "string"
-                },
-                "token_endpoint_auth_method": {
-                    "type": "string"
-                },
-                "tos_uri": {
-                    "type": "string"
-                }
-            }
-        },
         "codersdk.OAuth2Config": {
             "type": "object",
             "properties": {
@@ -14162,32 +13258,6 @@ const docTemplate = `{
                 },
                 "enterprise_base_url": {
                     "type": "string"
-                }
-            }
-        },
-        "codersdk.OAuth2ProtectedResourceMetadata": {
-            "type": "object",
-            "properties": {
-                "authorization_servers": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "bearer_methods_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "resource": {
-                    "type": "string"
-                },
-                "scopes_supported": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 }
             }
         },
@@ -14866,28 +13936,11 @@ const docTemplate = `{
                 }
             }
         },
-        "codersdk.PrebuildsSettings": {
-            "type": "object",
-            "properties": {
-                "reconciliation_paused": {
-                    "type": "boolean"
-                }
-            }
-        },
         "codersdk.Preset": {
             "type": "object",
             "properties": {
                 "default": {
                     "type": "boolean"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "desiredPrebuildInstances": {
-                    "type": "integer"
-                },
-                "icon": {
-                    "type": "string"
                 },
                 "id": {
                     "type": "string"
@@ -15002,9 +14055,6 @@ const docTemplate = `{
                 },
                 "label": {
                     "type": "string"
-                },
-                "mask_input": {
-                    "type": "boolean"
                 },
                 "placeholder": {
                     "type": "string"
@@ -15606,7 +14656,6 @@ const docTemplate = `{
                 "assign_org_role",
                 "assign_role",
                 "audit_log",
-                "connection_log",
                 "crypto_key",
                 "debug_info",
                 "deployment_config",
@@ -15646,7 +14695,6 @@ const docTemplate = `{
                 "ResourceAssignOrgRole",
                 "ResourceAssignRole",
                 "ResourceAuditLog",
-                "ResourceConnectionLog",
                 "ResourceCryptoKey",
                 "ResourceDebugInfo",
                 "ResourceDeploymentConfig",
@@ -15872,7 +14920,6 @@ const docTemplate = `{
                 "convert_login",
                 "health_settings",
                 "notifications_settings",
-                "prebuilds_settings",
                 "workspace_proxy",
                 "organization",
                 "oauth2_provider_app",
@@ -15899,7 +14946,6 @@ const docTemplate = `{
                 "ResourceTypeConvertLogin",
                 "ResourceTypeHealthSettings",
                 "ResourceTypeNotificationsSettings",
-                "ResourceTypePrebuildsSettings",
                 "ResourceTypeWorkspaceProxy",
                 "ResourceTypeOrganization",
                 "ResourceTypeOAuth2ProviderApp",
@@ -16297,23 +15343,6 @@ const docTemplate = `{
                 }
             }
         },
-        "codersdk.TemplateACL": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/codersdk.TemplateGroup"
-                    }
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/codersdk.TemplateUser"
-                    }
-                }
-            }
-        },
         "codersdk.TemplateAppUsage": {
             "type": "object",
             "properties": {
@@ -16443,62 +15472,6 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
-                }
-            }
-        },
-        "codersdk.TemplateGroup": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string",
-                    "format": "uri"
-                },
-                "display_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/codersdk.ReducedUser"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "organization_display_name": {
-                    "type": "string"
-                },
-                "organization_id": {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                "organization_name": {
-                    "type": "string"
-                },
-                "quota_allowance": {
-                    "type": "integer"
-                },
-                "role": {
-                    "enum": [
-                        "admin",
-                        "use"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/codersdk.TemplateRole"
-                        }
-                    ]
-                },
-                "source": {
-                    "$ref": "#/definitions/codersdk.GroupSource"
-                },
-                "total_member_count": {
-                    "description": "How many members are in this group. Shows the total count,\neven if the user is not authorized to read group member details.\nMay be greater than ` + "`" + `len(Group.Members)` + "`" + `.",
-                    "type": "integer"
                 }
             }
         },
@@ -17123,7 +16096,7 @@ const docTemplate = `{
                     },
                     "example": {
                         "8bd26b20-f3e8-48be-a903-46bb920cf671": "use",
-                        "\u003cgroup_id\u003e": "admin"
+                        "\u003cuser_id\u003e\u003e": "admin"
                     }
                 },
                 "user_perms": {
@@ -17134,7 +16107,7 @@ const docTemplate = `{
                     },
                     "example": {
                         "4df59e74-c027-470b-ab4d-cbba8963a5e9": "use",
-                        "\u003cuser_id\u003e": "admin"
+                        "\u003cgroup_id\u003e": "admin"
                     }
                 }
             }
@@ -17304,23 +16277,6 @@ const docTemplate = `{
                 "UsageAppNameReconnectingPty",
                 "UsageAppNameSSH"
             ]
-        },
-        "codersdk.UsagePeriod": {
-            "type": "object",
-            "properties": {
-                "end": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "issued_at": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "start": {
-                    "type": "string",
-                    "format": "date-time"
-                }
-            }
         },
         "codersdk.User": {
             "type": "object",
@@ -17733,10 +16689,6 @@ const docTemplate = `{
                     "type": "string",
                     "format": "uuid"
                 },
-                "is_prebuild": {
-                    "description": "IsPrebuild indicates whether the workspace is a prebuilt workspace.\nPrebuilt workspaces are owned by the prebuilds system user and have specific behavior,\nsuch as being managed differently from regular workspaces.\nOnce a prebuilt workspace is claimed by a user, it transitions to a regular workspace,\nand IsPrebuild returns false.",
-                    "type": "boolean"
-                },
                 "last_used_at": {
                     "type": "string",
                     "format": "date-time"
@@ -18046,9 +16998,6 @@ const docTemplate = `{
                 },
                 "dirty": {
                     "type": "boolean"
-                },
-                "error": {
-                    "type": "string"
                 },
                 "id": {
                     "type": "string",
@@ -19672,7 +18621,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "expiry": {
-                    "description": "Expiry is the optional expiration time of the access token.\n\nIf zero, [TokenSource] implementations will reuse the same\ntoken forever and RefreshToken or equivalent\nmechanisms for that TokenSource will not be used.",
+                    "description": "Expiry is the optional expiration time of the access token.\n\nIf zero, TokenSource implementations will reuse the same\ntoken forever and RefreshToken or equivalent\nmechanisms for that TokenSource will not be used.",
                     "type": "string"
                 },
                 "refresh_token": {
