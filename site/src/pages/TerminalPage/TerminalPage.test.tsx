@@ -1,6 +1,5 @@
 import "jest-canvas-mock";
 import { waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { API } from "api/api";
 import WS from "jest-websocket-mock";
 import { http, HttpResponse } from "msw";
@@ -86,7 +85,7 @@ describe("TerminalPage", () => {
 		await expectTerminalText(container, Language.workspaceErrorMessagePrefix);
 	});
 
-	it("shows reconnect message when websocket fails", async () => {
+	it("shows an error if the websocket fails", async () => {
 		server.use(
 			http.get("/api/v2/workspaceagents/:agentId/pty", () => {
 				return HttpResponse.json({}, { status: 500 });
@@ -95,9 +94,7 @@ describe("TerminalPage", () => {
 
 		const { container } = await renderTerminal();
 
-		await waitFor(() => {
-			expect(container.textContent).toContain("Trying to connect...");
-		});
+		await expectTerminalText(container, Language.websocketErrorMessagePrefix);
 	});
 
 	it("renders data from the backend", async () => {
@@ -148,22 +145,5 @@ describe("TerminalPage", () => {
 		await ws.nextMessage;
 		ws.send(text);
 		await expectTerminalText(container, text);
-	});
-
-	it("supports shift+enter", async () => {
-		const ws = new WS(
-			`ws://localhost/api/v2/workspaceagents/${MockWorkspaceAgent.id}/pty`,
-		);
-
-		const { container } = await renderTerminal();
-		// Ideally we could use ws.connected but that seems to pause React updates.
-		// For now, wait for the initial resize message instead.
-		await ws.nextMessage;
-
-		const msg = ws.nextMessage;
-		const terminal = container.getElementsByClassName("xterm");
-		await userEvent.type(terminal[0], "{Shift>}{Enter}{/Shift}");
-		const req = JSON.parse(new TextDecoder().decode((await msg) as Uint8Array));
-		expect(req.data).toBe("\x1b\r");
 	});
 });

@@ -67,7 +67,6 @@ test("Submit the workspace settings page successfully", async () => {
 	// Assert that the API calls were made with the correct data
 	await waitFor(() => {
 		expect(postWorkspaceBuildSpy).toHaveBeenCalledWith(MockWorkspace.id, {
-			reason: "dashboard",
 			transition: "start",
 			rich_parameter_values: [
 				{ name: MockTemplateVersionParameter1.name, value: "new-value" },

@@ -100,14 +100,6 @@ func (wpf *workspaceParameterFlags) alwaysPrompt() serpent.Option {
 	}
 }
 
-func presetParameterAsWorkspaceBuildParameters(presetParameters []codersdk.PresetParameter) []codersdk.WorkspaceBuildParameter {
-	var params []codersdk.WorkspaceBuildParameter
-	for _, parameter := range presetParameters {
-		params = append(params, codersdk.WorkspaceBuildParameter(parameter))
-	}
-	return params
-}
-
 func asWorkspaceBuildParameters(nameValuePairs []string) ([]codersdk.WorkspaceBuildParameter, error) {
 	var params []codersdk.WorkspaceBuildParameter
 	for _, nameValue := range nameValuePairs {
@@ -153,11 +145,9 @@ func parseParameterMapFile(parameterFile string) (map[string]string, error) {
 	return parameterMap, nil
 }
 
-// buildFlags contains options relating to troubleshooting provisioner jobs
-// and setting the reason for the workspace build.
+// buildFlags contains options relating to troubleshooting provisioner jobs.
 type buildFlags struct {
 	provisionerLogDebug bool
-	reason              string
 }
 
 func (bf *buildFlags) cliOptions() []serpent.Option {
@@ -169,18 +159,6 @@ This will print additional information about the build process.
 This is useful for troubleshooting build issues.`,
 			Value:  serpent.BoolOf(&bf.provisionerLogDebug),
 			Hidden: true,
-		},
-		{
-			Flag:        "reason",
-			Description: `Sets the reason for the workspace build (cli, vscode_connection, jetbrains_connection).`,
-			Value: serpent.EnumOf(
-				&bf.reason,
-				string(codersdk.BuildReasonCLI),
-				string(codersdk.BuildReasonVSCodeConnection),
-				string(codersdk.BuildReasonJetbrainsConnection),
-			),
-			Default: string(codersdk.BuildReasonCLI),
-			Hidden:  true,
 		},
 	}
 }

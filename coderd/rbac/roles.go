@@ -315,7 +315,6 @@ func ReloadBuiltinRoles(opts *RoleOptions) {
 		Site: Permissions(map[string][]policy.Action{
 			ResourceAssignOrgRole.Type: {policy.ActionRead},
 			ResourceAuditLog.Type:      {policy.ActionRead},
-			ResourceConnectionLog.Type: {policy.ActionRead},
 			// Allow auditors to see the resources that audit logs reflect.
 			ResourceTemplate.Type:           {policy.ActionRead, policy.ActionViewInsights},
 			ResourceUser.Type:               {policy.ActionRead},
@@ -457,8 +456,7 @@ func ReloadBuiltinRoles(opts *RoleOptions) {
 				Site:        []Permission{},
 				Org: map[string][]Permission{
 					organizationID.String(): Permissions(map[string][]policy.Action{
-						ResourceAuditLog.Type:      {policy.ActionRead},
-						ResourceConnectionLog.Type: {policy.ActionRead},
+						ResourceAuditLog.Type: {policy.ActionRead},
 						// Allow auditors to see the resources that audit logs reflect.
 						ResourceTemplate.Type:           {policy.ActionRead, policy.ActionViewInsights},
 						ResourceGroup.Type:              {policy.ActionRead},
@@ -847,6 +845,7 @@ func Permissions(perms map[string][]policy.Action) []Permission {
 	list := make([]Permission, 0, len(perms))
 	for k, actions := range perms {
 		for _, act := range actions {
+			act := act
 			list = append(list, Permission{
 				Negate:       false,
 				ResourceType: k,

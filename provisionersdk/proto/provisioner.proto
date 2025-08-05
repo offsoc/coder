@@ -101,8 +101,6 @@ message Preset {
   repeated PresetParameter parameters = 2;
   Prebuild prebuild = 3;
   bool default = 4;
-  string description = 5;
-  string icon = 6;
 }
 
 message PresetParameter {

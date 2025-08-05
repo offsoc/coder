@@ -2,15 +2,18 @@
  * @file Defines hooks for created debounced versions of functions and arbitrary
  * values.
  *
- * It is not safe to call most general-purpose debounce utility functions inside
- * a React render. This is because the state for handling the debounce logic
- * lives in the utility instead of React. If you call a general-purpose debounce
- * function inline, that will create a new stateful function on every render,
- * which has a lot of risks around conflicting/contradictory state.
+ * It is not safe to call a general-purpose debounce utility inside a React
+ * render. It will work on the initial render, but the memory reference for the
+ * value will change on re-renders. Most debounce functions create a "stateful"
+ * version of a function by leveraging closure; but by calling it repeatedly,
+ * you create multiple "pockets" of state, rather than a centralized one.
+ *
+ * Debounce utilities can make sense if they can be called directly outside the
+ * component or in a useEffect call, though.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type UseDebouncedFunctionReturn<Args extends unknown[]> = Readonly<{
+type useDebouncedFunctionReturn<Args extends unknown[]> = Readonly<{
 	debounced: (...args: Args) => void;
 
 	// Mainly here to make interfacing with useEffect cleanup functions easier
@@ -31,32 +34,26 @@ type UseDebouncedFunctionReturn<Args extends unknown[]> = Readonly<{
  */
 export function useDebouncedFunction<
 	// Parameterizing on the args instead of the whole callback function type to
-	// avoid type contravariance issues
+	// avoid type contra-variance issues
 	Args extends unknown[] = unknown[],
 >(
 	callback: (...args: Args) => void | Promise<void>,
-	debounceTimeoutMs: number,
-): UseDebouncedFunctionReturn<Args> {
-	if (!Number.isInteger(debounceTimeoutMs) || debounceTimeoutMs < 0) {
-		throw new Error(
-			`Invalid value ${debounceTimeoutMs} for debounceTimeoutMs. Value must be an integer greater than or equal to zero.`,
-		);
-	}
-
-	const timeoutIdRef = useRef<number | undefined>(undefined);
+	debounceTimeMs: number,
+): useDebouncedFunctionReturn<Args> {
+	const timeoutIdRef = useRef<number | null>(null);
 	const cancelDebounce = useCallback(() => {
-		if (timeoutIdRef.current !== undefined) {
+		if (timeoutIdRef.current !== null) {
 			window.clearTimeout(timeoutIdRef.current);
 		}
 
-		timeoutIdRef.current = undefined;
+		timeoutIdRef.current = null;
 	}, []);
 
-	const debounceTimeRef = useRef(debounceTimeoutMs);
+	const debounceTimeRef = useRef(debounceTimeMs);
 	useEffect(() => {
 		cancelDebounce();
-		debounceTimeRef.current = debounceTimeoutMs;
-	}, [cancelDebounce, debounceTimeoutMs]);
+		debounceTimeRef.current = debounceTimeMs;
+	}, [cancelDebounce, debounceTimeMs]);
 
 	const callbackRef = useRef(callback);
 	useEffect(() => {
@@ -84,32 +81,19 @@ export function useDebouncedFunction<
 /**
  * Takes any value, and returns out a debounced version of it.
  */
-export function useDebouncedValue<T>(value: T, debounceTimeoutMs: number): T {
-	if (!Number.isInteger(debounceTimeoutMs) || debounceTimeoutMs < 0) {
-		throw new Error(
-			`Invalid value ${debounceTimeoutMs} for debounceTimeoutMs. Value must be an integer greater than or equal to zero.`,
-		);
-	}
-
+export function useDebouncedValue<T = unknown>(
+	value: T,
+	debounceTimeMs: number,
+): T {
 	const [debouncedValue, setDebouncedValue] = useState(value);
 
-	// If the debounce timeout is ever zero, synchronously flush any state syncs.
-	// Doing this mid-render instead of in useEffect means that we drastically cut
-	// down on needless re-renders, and we also avoid going through the event loop
-	// to do a state sync that is *intended* to happen immediately
-	if (value !== debouncedValue && debounceTimeoutMs === 0) {
-		setDebouncedValue(value);
-	}
 	useEffect(() => {
-		if (debounceTimeoutMs === 0) {
-			return;
-		}
-
 		const timeoutId = window.setTimeout(() => {
 			setDebouncedValue(value);
-		}, debounceTimeoutMs);
+		}, debounceTimeMs);
+
 		return () => window.clearTimeout(timeoutId);
-	}, [value, debounceTimeoutMs]);
+	}, [value, debounceTimeMs]);
 
 	return debouncedValue;
 }

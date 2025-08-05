@@ -7,7 +7,6 @@ import { Alert } from "components/Alert/Alert";
 import { ErrorAlert } from "components/Alert/ErrorAlert";
 import { ConfirmDialog } from "components/Dialogs/ConfirmDialog/ConfirmDialog";
 import { displayError, displaySuccess } from "components/GlobalSnackbar/utils";
-import { Link } from "components/Link/Link";
 import { Loader } from "components/Loader/Loader";
 import { PageHeader, PageHeaderTitle } from "components/PageHeader/PageHeader";
 import dayjs from "dayjs";
@@ -21,7 +20,6 @@ import { type FC, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { docs } from "utils/docs";
 import { pageTitle } from "utils/page";
 import { WorkspaceScheduleForm } from "./WorkspaceScheduleForm";
 import {
@@ -34,7 +32,7 @@ const permissionsToCheck = (workspace: TypesGen.Workspace) =>
 		updateWorkspace: {
 			object: {
 				resource_type: "workspace",
-				resource_id: workspace.id,
+				resourceId: workspace.id,
 				owner_id: workspace.owner_id,
 			},
 			action: "update",
@@ -96,62 +94,42 @@ const WorkspaceSchedulePage: FC = () => {
 				</Alert>
 			)}
 
-			{template &&
-				(workspace.is_prebuild ? (
-					<Alert severity="info">
-						Prebuilt workspaces ignore workspace-level scheduling until they are
-						claimed. For prebuilt workspace specific scheduling refer to the{" "}
-						<Link
-							title="Prebuilt Workspaces Scheduling"
-							href={docs(
-								"/admin/templates/extending-templates/prebuilt-workspaces#scheduling",
-							)}
-							target="_blank"
-							rel="noreferrer"
-						>
-							Prebuilt Workspaces Scheduling
-						</Link>
-						documentation page.
-					</Alert>
-				) : (
-					<WorkspaceScheduleForm
-						template={template}
-						error={submitScheduleMutation.error}
-						initialValues={{
-							...getAutostart(workspace),
-							...getAutostop(workspace),
-						}}
-						isLoading={submitScheduleMutation.isPending}
-						defaultTTL={dayjs.duration(template.default_ttl_ms, "ms").asHours()}
-						onCancel={() => {
-							navigate(`/@${username}/${workspaceName}`);
-						}}
-						onSubmit={async (values) => {
-							const data = {
-								workspace,
-								autostart: formValuesToAutostartRequest(values),
-								ttl: formValuesToTTLRequest(values),
-								autostartChanged: scheduleChanged(
-									getAutostart(workspace),
-									values,
-								),
-								autostopChanged: scheduleChanged(
-									getAutostop(workspace),
-									values,
-								),
-							};
+			{template && (
+				<WorkspaceScheduleForm
+					template={template}
+					error={submitScheduleMutation.error}
+					initialValues={{
+						...getAutostart(workspace),
+						...getAutostop(workspace),
+					}}
+					isLoading={submitScheduleMutation.isPending}
+					defaultTTL={dayjs.duration(template.default_ttl_ms, "ms").asHours()}
+					onCancel={() => {
+						navigate(`/@${username}/${workspaceName}`);
+					}}
+					onSubmit={async (values) => {
+						const data = {
+							workspace,
+							autostart: formValuesToAutostartRequest(values),
+							ttl: formValuesToTTLRequest(values),
+							autostartChanged: scheduleChanged(
+								getAutostart(workspace),
+								values,
+							),
+							autostopChanged: scheduleChanged(getAutostop(workspace), values),
+						};
 
-							await submitScheduleMutation.mutateAsync(data);
+						await submitScheduleMutation.mutateAsync(data);
 
-							if (
-								data.autostopChanged &&
-								getAutostop(workspace).autostopEnabled
-							) {
-								setIsConfirmingApply(true);
-							}
-						}}
-					/>
-				))}
+						if (
+							data.autostopChanged &&
+							getAutostop(workspace).autostopEnabled
+						) {
+							setIsConfirmingApply(true);
+						}
+					}}
+				/>
+			)}
 
 			<ConfirmDialog
 				open={isConfirmingApply}

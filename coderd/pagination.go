@@ -9,9 +9,9 @@ import (
 	"github.com/coder/coder/v2/codersdk"
 )
 
-// ParsePagination extracts pagination query params from the http request.
+// parsePagination extracts pagination query params from the http request.
 // If an error is encountered, the error is written to w and ok is set to false.
-func ParsePagination(w http.ResponseWriter, r *http.Request) (p codersdk.Pagination, ok bool) {
+func parsePagination(w http.ResponseWriter, r *http.Request) (p codersdk.Pagination, ok bool) {
 	ctx := r.Context()
 	queryParams := r.URL.Query()
 	parser := httpapi.NewQueryParamParser()

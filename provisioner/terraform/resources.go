@@ -965,9 +965,7 @@ func ConvertState(ctx context.Context, modules []*tfjson.StateModule, rawGraph s
 				ExpirationPolicy: expirationPolicy,
 				Scheduling:       scheduling,
 			},
-			Default:     preset.Default,
-			Description: preset.Description,
-			Icon:        preset.Icon,
+			Default: preset.Default,
 		}
 
 		if slice.Contains(duplicatedPresetNames, preset.Name) {

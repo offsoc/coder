@@ -188,7 +188,6 @@ type ProvisionerJob struct {
 	Type             ProvisionerJobType     `json:"type" table:"type"`
 	AvailableWorkers []uuid.UUID            `json:"available_workers,omitempty" format:"uuid" table:"available workers"`
 	Metadata         ProvisionerJobMetadata `json:"metadata" table:"metadata,recursive_inline"`
-	LogsOverflowed   bool                   `json:"logs_overflowed" table:"logs overflowed"`
 }
 
 // ProvisionerJobLog represents the provisioner log entry annotated with source and level.

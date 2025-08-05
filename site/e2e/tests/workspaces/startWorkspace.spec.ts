@@ -4,7 +4,6 @@ import {
 	buildWorkspaceWithParameters,
 	createTemplate,
 	createWorkspace,
-	disableDynamicParameters,
 	echoResponsesWithParameters,
 	stopWorkspace,
 	verifyParameters,
@@ -25,9 +24,6 @@ test("start workspace with ephemeral parameters", async ({ page }) => {
 		page,
 		echoResponsesWithParameters(richParameters),
 	);
-
-	// Disable dynamic parameters to use classic parameter flow for this test
-	await disableDynamicParameters(page, template);
 
 	await login(page, users.member);
 	const workspaceName = await createWorkspace(page, template);

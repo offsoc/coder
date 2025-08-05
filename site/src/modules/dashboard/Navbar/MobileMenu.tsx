@@ -37,7 +37,6 @@ type MobileMenuPermissions = {
 	canViewDeployment: boolean;
 	canViewOrganizations: boolean;
 	canViewAuditLog: boolean;
-	canViewConnectionLog: boolean;
 	canViewHealth: boolean;
 };
 
@@ -193,7 +192,6 @@ const AdminSettingsSub: FC<MobileMenuPermissions> = ({
 	canViewDeployment,
 	canViewOrganizations,
 	canViewAuditLog,
-	canViewConnectionLog,
 	canViewHealth,
 }) => {
 	const [open, setOpen] = useState(false);
@@ -237,14 +235,6 @@ const AdminSettingsSub: FC<MobileMenuPermissions> = ({
 						className={cn(itemStyles.default, itemStyles.sub)}
 					>
 						<Link to="/audit">Audit logs</Link>
-					</DropdownMenuItem>
-				)}
-				{canViewConnectionLog && (
-					<DropdownMenuItem
-						asChild
-						className={cn(itemStyles.default, itemStyles.sub)}
-					>
-						<Link to="/connectionlog">Connection logs</Link>
 					</DropdownMenuItem>
 				)}
 				{canViewHealth && (

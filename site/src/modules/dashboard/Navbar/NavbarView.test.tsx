@@ -33,7 +33,6 @@ describe("NavbarView", () => {
 				canViewOrganizations
 				canViewHealth
 				canViewAuditLog
-				canViewConnectionLog
 			/>,
 		);
 		const workspacesLink =
@@ -51,7 +50,6 @@ describe("NavbarView", () => {
 				canViewOrganizations
 				canViewHealth
 				canViewAuditLog
-				canViewConnectionLog
 			/>,
 		);
 		const templatesLink =
@@ -69,7 +67,6 @@ describe("NavbarView", () => {
 				canViewOrganizations
 				canViewHealth
 				canViewAuditLog
-				canViewConnectionLog
 			/>,
 		);
 		const deploymentMenu = await screen.findByText("Admin settings");
@@ -88,7 +85,6 @@ describe("NavbarView", () => {
 				canViewOrganizations
 				canViewHealth
 				canViewAuditLog
-				canViewConnectionLog
 			/>,
 		);
 		const deploymentMenu = await screen.findByText("Admin settings");

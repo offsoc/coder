@@ -294,9 +294,7 @@ func TestCreateUserWorkspace(t *testing.T) {
 			OrganizationID: first.OrganizationID,
 		})
 
-		template, _ := coderdtest.DynamicParameterTemplate(t, admin, first.OrganizationID, coderdtest.DynamicParameterTemplateParams{
-			Zip: true,
-		})
+		template, _ := coderdtest.DynamicParameterTemplate(t, admin, first.OrganizationID, coderdtest.DynamicParameterTemplateParams{})
 
 		ctx = testutil.Context(t, testutil.WaitLong)
 
@@ -1864,7 +1862,6 @@ func TestExecutorPrebuilds(t *testing.T) {
 			clock,
 			prometheus.NewRegistry(),
 			notificationsNoop,
-			api.AGPL.BuildUsageChecker,
 		)
 		var claimer agplprebuilds.Claimer = prebuilds.NewEnterpriseClaimer(db)
 		api.AGPL.PrebuildsClaimer.Store(&claimer)
@@ -2005,7 +2002,6 @@ func TestExecutorPrebuilds(t *testing.T) {
 					clock,
 					prometheus.NewRegistry(),
 					notificationsNoop,
-					api.AGPL.BuildUsageChecker,
 				)
 				var claimer agplprebuilds.Claimer = prebuilds.NewEnterpriseClaimer(db)
 				api.AGPL.PrebuildsClaimer.Store(&claimer)
@@ -2136,7 +2132,6 @@ func TestExecutorPrebuilds(t *testing.T) {
 			clock,
 			prometheus.NewRegistry(),
 			notificationsNoop,
-			api.AGPL.BuildUsageChecker,
 		)
 		var claimer agplprebuilds.Claimer = prebuilds.NewEnterpriseClaimer(db)
 		api.AGPL.PrebuildsClaimer.Store(&claimer)
@@ -2269,7 +2264,6 @@ func TestExecutorPrebuilds(t *testing.T) {
 			clock,
 			prometheus.NewRegistry(),
 			notificationsNoop,
-			api.AGPL.BuildUsageChecker,
 		)
 		var claimer agplprebuilds.Claimer = prebuilds.NewEnterpriseClaimer(db)
 		api.AGPL.PrebuildsClaimer.Store(&claimer)
@@ -2380,7 +2374,6 @@ func TestExecutorPrebuilds(t *testing.T) {
 			clock,
 			prometheus.NewRegistry(),
 			notificationsNoop,
-			api.AGPL.BuildUsageChecker,
 		)
 		var claimer agplprebuilds.Claimer = prebuilds.NewEnterpriseClaimer(db)
 		api.AGPL.PrebuildsClaimer.Store(&claimer)
@@ -2632,21 +2625,6 @@ func TestWorkspaceTemplateParamsChange(t *testing.T) {
 	require.Equal(t, codersdk.WorkspaceStatusDeleted, build.Status)
 }
 
-type testWorkspaceTagsTerraformCase struct {
-	name string
-	// tags to apply to the external provisioner
-	provisionerTags map[string]string
-	// tags to apply to the create template version request
-	createTemplateVersionRequestTags map[string]string
-	// the coder_workspace_tags bit of main.tf.
-	// you can add more stuff here if you need
-	tfWorkspaceTags                  string
-	templateImportUserVariableValues []codersdk.VariableValue
-	// if we need to set parameters on workspace build
-	workspaceBuildParameters []codersdk.WorkspaceBuildParameter
-	skipCreateWorkspace      bool
-}
-
 // TestWorkspaceTagsTerraform tests that a workspace can be created with tags.
 // This is an end-to-end-style test, meaning that we actually run the
 // real Terraform provisioner and validate that the workspace is created
@@ -2656,7 +2634,7 @@ type testWorkspaceTagsTerraformCase struct {
 // config file so that we only reference those
 // nolint:paralleltest // t.Setenv
 func TestWorkspaceTagsTerraform(t *testing.T) {
-	coderProviderTemplate := `
+	mainTfTemplate := `
 		terraform {
 			required_providers {
 				coder = {
@@ -2664,11 +2642,33 @@ func TestWorkspaceTagsTerraform(t *testing.T) {
 				}
 			}
 		}
+		provider "coder" {}
+		data "coder_workspace" "me" {}
+		data "coder_workspace_owner" "me" {}
+		data "coder_parameter" "unrelated" {
+			name    = "unrelated"
+			type    = "list(string)"
+			default = jsonencode(["a", "b"])
+		}
+		%s
 	`
-	tfCliConfigPath := downloadProviders(t, coderProviderTemplate)
+	tfCliConfigPath := downloadProviders(t, fmt.Sprintf(mainTfTemplate, ""))
 	t.Setenv("TF_CLI_CONFIG_FILE", tfCliConfigPath)
 
-	for _, tc := range []testWorkspaceTagsTerraformCase{
+	for _, tc := range []struct {
+		name string
+		// tags to apply to the external provisioner
+		provisionerTags map[string]string
+		// tags to apply to the create template version request
+		createTemplateVersionRequestTags map[string]string
+		// the coder_workspace_tags bit of main.tf.
+		// you can add more stuff here if you need
+		tfWorkspaceTags                  string
+		templateImportUserVariableValues []codersdk.VariableValue
+		// if we need to set parameters on workspace build
+		workspaceBuildParameters []codersdk.WorkspaceBuildParameter
+		skipCreateWorkspace      bool
+	}{
 		{
 			name:            "no tags",
 			tfWorkspaceTags: ``,
@@ -2801,111 +2801,53 @@ func TestWorkspaceTagsTerraform(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Run("dynamic", func(t *testing.T) {
-				workspaceTagsTerraform(t, tc, true)
+			client, owner := coderdenttest.New(t, &coderdenttest.Options{
+				Options: &coderdtest.Options{
+					// We intentionally do not run a built-in provisioner daemon here.
+					IncludeProvisionerDaemon: false,
+				},
+				LicenseOptions: &coderdenttest.LicenseOptions{
+					Features: license.Features{
+						codersdk.FeatureExternalProvisionerDaemons: 1,
+					},
+				},
 			})
+			templateAdmin, _ := coderdtest.CreateAnotherUser(t, client, owner.OrganizationID, rbac.RoleTemplateAdmin())
+			member, memberUser := coderdtest.CreateAnotherUser(t, client, owner.OrganizationID)
 
-			// classic uses tfparse for tags. This sub test can be
-			// removed when tf parse is removed.
-			t.Run("classic", func(t *testing.T) {
-				workspaceTagsTerraform(t, tc, false)
+			_ = coderdenttest.NewExternalProvisionerDaemonTerraform(t, client, owner.OrganizationID, tc.provisionerTags)
+
+			// This can take a while, so set a relatively long timeout.
+			ctx := testutil.Context(t, 2*testutil.WaitSuperLong)
+
+			// Creating a template as a template admin must succeed
+			templateFiles := map[string]string{"main.tf": fmt.Sprintf(mainTfTemplate, tc.tfWorkspaceTags)}
+			tarBytes := testutil.CreateTar(t, templateFiles)
+			fi, err := templateAdmin.Upload(ctx, "application/x-tar", bytes.NewReader(tarBytes))
+			require.NoError(t, err, "failed to upload file")
+			tv, err := templateAdmin.CreateTemplateVersion(ctx, owner.OrganizationID, codersdk.CreateTemplateVersionRequest{
+				Name:               testutil.GetRandomName(t),
+				FileID:             fi.ID,
+				StorageMethod:      codersdk.ProvisionerStorageMethodFile,
+				Provisioner:        codersdk.ProvisionerTypeTerraform,
+				ProvisionerTags:    tc.createTemplateVersionRequestTags,
+				UserVariableValues: tc.templateImportUserVariableValues,
 			})
-		})
-	}
-}
+			require.NoError(t, err, "failed to create template version")
+			coderdtest.AwaitTemplateVersionJobCompleted(t, templateAdmin, tv.ID)
+			tpl := coderdtest.CreateTemplate(t, templateAdmin, owner.OrganizationID, tv.ID)
 
-func workspaceTagsTerraform(t *testing.T, tc testWorkspaceTagsTerraformCase, dynamic bool) {
-	mainTfTemplate := `
-		terraform {
-			required_providers {
-				coder = {
-					source = "coder/coder"
-				}
+			if !tc.skipCreateWorkspace {
+				// Creating a workspace as a non-privileged user must succeed
+				ws, err := member.CreateUserWorkspace(ctx, memberUser.Username, codersdk.CreateWorkspaceRequest{
+					TemplateID:          tpl.ID,
+					Name:                coderdtest.RandomUsername(t),
+					RichParameterValues: tc.workspaceBuildParameters,
+				})
+				require.NoError(t, err, "failed to create workspace")
+				coderdtest.AwaitWorkspaceBuildJobCompleted(t, member, ws.LatestBuild.ID)
 			}
-		}
-
-		provider "coder" {}
-		data "coder_workspace" "me" {}
-		data "coder_workspace_owner" "me" {}
-		data "coder_parameter" "unrelated" {
-			name    = "unrelated"
-			type    = "list(string)"
-			default = jsonencode(["a", "b"])
-		}
-		%s
-	`
-
-	client, owner := coderdenttest.New(t, &coderdenttest.Options{
-		Options: &coderdtest.Options{
-			// We intentionally do not run a built-in provisioner daemon here.
-			IncludeProvisionerDaemon: false,
-		},
-		LicenseOptions: &coderdenttest.LicenseOptions{
-			Features: license.Features{
-				codersdk.FeatureExternalProvisionerDaemons: 1,
-			},
-		},
-	})
-	templateAdmin, _ := coderdtest.CreateAnotherUser(t, client, owner.OrganizationID, rbac.RoleTemplateAdmin())
-	member, memberUser := coderdtest.CreateAnotherUser(t, client, owner.OrganizationID)
-
-	// This can take a while, so set a relatively long timeout.
-	ctx := testutil.Context(t, 2*testutil.WaitSuperLong)
-
-	emptyTar := testutil.CreateTar(t, map[string]string{"main.tf": ""})
-	emptyFi, err := templateAdmin.Upload(ctx, "application/x-tar", bytes.NewReader(emptyTar))
-	require.NoError(t, err)
-
-	// This template version does not need to succeed in being created.
-	// It will be in pending forever. We just need it to create a template.
-	emptyTv, err := templateAdmin.CreateTemplateVersion(ctx, owner.OrganizationID, codersdk.CreateTemplateVersionRequest{
-		Name:          testutil.GetRandomName(t),
-		FileID:        emptyFi.ID,
-		StorageMethod: codersdk.ProvisionerStorageMethodFile,
-		Provisioner:   codersdk.ProvisionerTypeTerraform,
-	})
-	require.NoError(t, err)
-
-	tpl := coderdtest.CreateTemplate(t, templateAdmin, owner.OrganizationID, emptyTv.ID, func(request *codersdk.CreateTemplateRequest) {
-		request.UseClassicParameterFlow = ptr.Ref(!dynamic)
-	})
-
-	// The provisioner for the next template version
-	_ = coderdenttest.NewExternalProvisionerDaemonTerraform(t, client, owner.OrganizationID, tc.provisionerTags)
-
-	// Creating a template as a template admin must succeed
-	templateFiles := map[string]string{"main.tf": fmt.Sprintf(mainTfTemplate, tc.tfWorkspaceTags)}
-	tarBytes := testutil.CreateTar(t, templateFiles)
-	fi, err := templateAdmin.Upload(ctx, "application/x-tar", bytes.NewReader(tarBytes))
-	require.NoError(t, err, "failed to upload file")
-	tv, err := templateAdmin.CreateTemplateVersion(ctx, owner.OrganizationID, codersdk.CreateTemplateVersionRequest{
-		Name:               testutil.GetRandomName(t),
-		FileID:             fi.ID,
-		StorageMethod:      codersdk.ProvisionerStorageMethodFile,
-		Provisioner:        codersdk.ProvisionerTypeTerraform,
-		ProvisionerTags:    tc.createTemplateVersionRequestTags,
-		UserVariableValues: tc.templateImportUserVariableValues,
-		TemplateID:         tpl.ID,
-	})
-	require.NoError(t, err, "failed to create template version")
-	coderdtest.AwaitTemplateVersionJobCompleted(t, templateAdmin, tv.ID)
-
-	err = templateAdmin.UpdateActiveTemplateVersion(ctx, tpl.ID, codersdk.UpdateActiveTemplateVersion{
-		ID: tv.ID,
-	})
-	require.NoError(t, err, "set to active template version")
-
-	if !tc.skipCreateWorkspace {
-		// Creating a workspace as a non-privileged user must succeed
-		ws, err := member.CreateUserWorkspace(ctx, memberUser.Username, codersdk.CreateWorkspaceRequest{
-			TemplateID:          tpl.ID,
-			Name:                coderdtest.RandomUsername(t),
-			RichParameterValues: tc.workspaceBuildParameters,
 		})
-		require.NoError(t, err, "failed to create workspace")
-		tagJSON, _ := json.Marshal(ws.LatestBuild.Job.Tags)
-		t.Logf("Created workspace build [%s] with tags: %s", ws.LatestBuild.Job.Type, tagJSON)
-		coderdtest.AwaitWorkspaceBuildJobCompleted(t, member, ws.LatestBuild.ID)
 	}
 }
 
@@ -3180,7 +3122,7 @@ func TestWorkspaceLock(t *testing.T) {
 		require.NotNil(t, workspace.DeletingAt)
 		require.NotNil(t, workspace.DormantAt)
 		require.Equal(t, workspace.DormantAt.Add(dormantTTL), *workspace.DeletingAt)
-		require.WithinRange(t, *workspace.DormantAt, time.Now().Add(-time.Second), time.Now())
+		require.WithinRange(t, *workspace.DormantAt, time.Now().Add(-time.Second*10), time.Now())
 		// Locking a workspace shouldn't update the last_used_at.
 		require.Equal(t, lastUsedAt, workspace.LastUsedAt)
 

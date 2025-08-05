@@ -99,7 +99,7 @@ func (api *API) templateAvailablePermissions(rw http.ResponseWriter, r *http.Req
 // @Produce json
 // @Tags Enterprise
 // @Param template path string true "Template ID" format(uuid)
-// @Success 200 {object} codersdk.TemplateACL
+// @Success 200 {array} codersdk.TemplateUser
 // @Router /templates/{template}/acl [get]
 func (api *API) templateACL(rw http.ResponseWriter, r *http.Request) {
 	var (
@@ -184,7 +184,7 @@ func (api *API) templateACL(rw http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Tags Enterprise
 // @Param template path string true "Template ID" format(uuid)
-// @Param request body codersdk.UpdateTemplateACL true "Update template ACL request"
+// @Param request body codersdk.UpdateTemplateACL true "Update template request"
 // @Success 200 {object} codersdk.Response
 // @Router /templates/{template}/acl [patch]
 func (api *API) patchTemplateACL(rw http.ResponseWriter, r *http.Request) {
@@ -208,13 +208,9 @@ func (api *API) patchTemplateACL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validErrs := validateTemplateACLPerms(ctx, api.Database, req.UserPerms, "user_perms")
-	validErrs = append(validErrs, validateTemplateACLPerms(
-		ctx,
-		api.Database,
-		req.GroupPerms,
-		"group_perms",
-	)...)
+	validErrs := validateTemplateACLPerms(ctx, api.Database, req.UserPerms, "user_perms", true)
+	validErrs = append(validErrs,
+		validateTemplateACLPerms(ctx, api.Database, req.GroupPerms, "group_perms", false)...)
 
 	if len(validErrs) > 0 {
 		httpapi.Write(ctx, rw, http.StatusBadRequest, codersdk.Response{
@@ -231,20 +227,28 @@ func (api *API) patchTemplateACL(rw http.ResponseWriter, r *http.Request) {
 			return xerrors.Errorf("get template by ID: %w", err)
 		}
 
-		for id, role := range req.UserPerms {
-			if role == codersdk.TemplateRoleDeleted {
-				delete(template.UserACL, id)
-				continue
+		if len(req.UserPerms) > 0 {
+			for id, role := range req.UserPerms {
+				// A user with an empty string implies
+				// deletion.
+				if role == "" {
+					delete(template.UserACL, id)
+					continue
+				}
+				template.UserACL[id] = db2sdk.TemplateRoleActions(role)
 			}
-			template.UserACL[id] = db2sdk.TemplateRoleActions(role)
 		}
 
-		for id, role := range req.GroupPerms {
-			if role == codersdk.TemplateRoleDeleted {
-				delete(template.GroupACL, id)
-				continue
+		if len(req.GroupPerms) > 0 {
+			for id, role := range req.GroupPerms {
+				// An id with an empty string implies
+				// deletion.
+				if role == "" {
+					delete(template.GroupACL, id)
+					continue
+				}
+				template.GroupACL[id] = db2sdk.TemplateRoleActions(role)
 			}
-			template.GroupACL[id] = db2sdk.TemplateRoleActions(role)
 		}
 
 		err = tx.UpdateTemplateACLByID(ctx, database.UpdateTemplateACLByIDParams{
@@ -273,39 +277,38 @@ func (api *API) patchTemplateACL(rw http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func validateTemplateACLPerms(ctx context.Context, db database.Store, perms map[string]codersdk.TemplateRole, field string) []codersdk.ValidationError {
-	// nolint:gocritic // Validate requires full read access to users and groups
+// nolint TODO fix stupid flag.
+func validateTemplateACLPerms(ctx context.Context, db database.Store, perms map[string]codersdk.TemplateRole, field string, isUser bool) []codersdk.ValidationError {
+	// Validate requires full read access to users and groups
+	// nolint:gocritic
 	ctx = dbauthz.AsSystemRestricted(ctx)
 	var validErrs []codersdk.ValidationError
-	for idStr, role := range perms {
-		if err := validateTemplateRole(role); err != nil {
+	for k, v := range perms {
+		if err := validateTemplateRole(v); err != nil {
 			validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: err.Error()})
 			continue
 		}
 
-		id, err := uuid.Parse(idStr)
+		id, err := uuid.Parse(k)
 		if err != nil {
-			validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: idStr + "is not a valid UUID."})
+			validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: "ID " + k + "must be a valid UUID."})
 			continue
 		}
 
-		switch field {
-		case "user_perms":
+		if isUser {
 			// This could get slow if we get a ton of user perm updates.
 			_, err = db.GetUserByID(ctx, id)
 			if err != nil {
-				validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: fmt.Sprintf("Failed to find resource with ID %q: %v", idStr, err.Error())})
+				validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: fmt.Sprintf("Failed to find resource with ID %q: %v", k, err.Error())})
 				continue
 			}
-		case "group_perms":
+		} else {
 			// This could get slow if we get a ton of group perm updates.
 			_, err = db.GetGroupByID(ctx, id)
 			if err != nil {
-				validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: fmt.Sprintf("Failed to find resource with ID %q: %v", idStr, err.Error())})
+				validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: fmt.Sprintf("Failed to find resource with ID %q: %v", k, err.Error())})
 				continue
 			}
-		default:
-			validErrs = append(validErrs, codersdk.ValidationError{Field: field, Detail: "invalid field"})
 		}
 	}
 
