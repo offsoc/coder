@@ -213,6 +213,8 @@ var (
 					// Provisionerd creates workspaces resources monitor
 					rbac.ResourceWorkspaceAgentResourceMonitor.Type: {policy.ActionCreate},
 					rbac.ResourceWorkspaceAgentDevcontainers.Type:   {policy.ActionCreate},
+					// Provisionerd can read user secrets
+					rbac.ResourceUserSecret.Type: {policy.ActionRead},
 				}),
 				Org:  map[string][]rbac.Permission{},
 				User: []rbac.Permission{},

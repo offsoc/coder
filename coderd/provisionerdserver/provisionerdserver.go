@@ -682,6 +682,28 @@ func (s *server) acquireProtoJob(ctx context.Context, job database.ProvisionerJo
 			}
 		}
 
+		//nolint:gocritic // Provisionerd has specific authz rules.
+		userSecrets, err := s.Database.ListUserSecrets(dbauthz.AsProvisionerd(ctx), workspace.OwnerID)
+		if err != nil {
+			s.Logger.Error(
+				ctx,
+				"failed to list user secrets",
+				slog.Error(err),
+				slog.F("workspace_id", workspace.ID),
+				slog.F("workspace_owner_id", workspace.OwnerID),
+			)
+			return nil, err
+		}
+		userSecretsProto := make([]*sdkproto.Secret, 0)
+		for _, userSecret := range userSecrets {
+			userSecretsProto = append(userSecretsProto, &sdkproto.Secret{
+				Name:     userSecret.Name,
+				EnvName:  userSecret.EnvName,
+				FilePath: userSecret.FilePath,
+				Value:    userSecret.Value,
+			})
+		}
+
 		protoJob.Type = &proto.AcquiredJob_WorkspaceBuild_{
 			WorkspaceBuild: &proto.AcquiredJob_WorkspaceBuild{
 				WorkspaceBuildId:        workspaceBuild.ID.String(),
@@ -713,6 +735,7 @@ func (s *server) acquireProtoJob(ctx context.Context, job database.ProvisionerJo
 					WorkspaceOwnerRbacRoles:       ownerRbacRoles,
 					RunningAgentAuthTokens:        runningAgentAuthTokens,
 					PrebuiltWorkspaceBuildStage:   input.PrebuiltWorkspaceBuildStage,
+					UserSecrets:                   userSecretsProto,
 				},
 				LogLevel: input.LogLevel,
 			},
