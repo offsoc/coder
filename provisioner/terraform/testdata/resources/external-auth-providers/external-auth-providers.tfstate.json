@@ -10,13 +10,15 @@
           "type": "coder_external_auth",
           "name": "github",
           "provider_name": "registry.terraform.io/coder/coder",
-          "schema_version": 1,
+          "schema_version": 0,
           "values": {
             "access_token": "",
             "id": "github",
             "optional": null
           },
-          "sensitive_values": {}
+          "sensitive_values": {
+            "access_token": true
+          }
         },
         {
           "address": "data.coder_external_auth.gitlab",
@@ -24,13 +26,15 @@
           "type": "coder_external_auth",
           "name": "gitlab",
           "provider_name": "registry.terraform.io/coder/coder",
-          "schema_version": 1,
+          "schema_version": 0,
           "values": {
             "access_token": "",
             "id": "gitlab",
             "optional": true
           },
-          "sensitive_values": {}
+          "sensitive_values": {
+            "access_token": true
+          }
         },
         {
           "address": "coder_agent.main",

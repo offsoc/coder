@@ -13,7 +13,7 @@
           "schema_version": 1,
           "values": {
             "api_key_scope": "all",
-            "arch": "amd64",
+            "arch": "arm64",
             "auth": "token",
             "connection_timeout": 120,
             "dir": null,
@@ -21,7 +21,7 @@
             "metadata": [],
             "motd_file": null,
             "order": null,
-            "os": "linux",
+            "os": "darwin",
             "resources_monitoring": [],
             "shutdown_script": null,
             "startup_script": null,
@@ -72,7 +72,7 @@
         "before": null,
         "after": {
           "api_key_scope": "all",
-          "arch": "amd64",
+          "arch": "arm64",
           "auth": "token",
           "connection_timeout": 120,
           "dir": null,
@@ -80,7 +80,7 @@
           "metadata": [],
           "motd_file": null,
           "order": null,
-          "os": "linux",
+          "os": "darwin",
           "resources_monitoring": [],
           "shutdown_script": null,
           "startup_script": null,
@@ -149,11 +149,11 @@
             "type": "coder_provisioner",
             "name": "me",
             "provider_name": "registry.terraform.io/coder/coder",
-            "schema_version": 1,
+            "schema_version": 0,
             "values": {
-              "arch": "amd64",
+              "arch": "arm64",
               "id": "5a6ecb8b-fd26-4cfc-91b1-651d06bee98c",
-              "os": "linux"
+              "os": "darwin"
             },
             "sensitive_values": {}
           },
@@ -163,14 +163,14 @@
             "type": "coder_workspace",
             "name": "me",
             "provider_name": "registry.terraform.io/coder/coder",
-            "schema_version": 1,
+            "schema_version": 0,
             "values": {
               "access_port": 443,
-              "access_url": "https://dev.coder.com/",
+              "access_url": "https://mydeployment.coder.com",
               "id": "bf9ee323-4f3a-4d45-9841-2dcd6265e830",
               "is_prebuild": false,
               "is_prebuild_claim": false,
-              "name": "sebenza-nonix",
+              "name": "default",
               "prebuild_count": 0,
               "start_count": 1,
               "template_id": "",
@@ -202,7 +202,9 @@
             },
             "sensitive_values": {
               "groups": [],
+              "oidc_access_token": true,
               "rbac_roles": [],
+              "session_token": true,
               "ssh_private_key": true
             }
           }
@@ -265,7 +267,7 @@
           "type": "coder_provisioner",
           "name": "me",
           "provider_config_key": "coder",
-          "schema_version": 1
+          "schema_version": 0
         },
         {
           "address": "data.coder_workspace.me",
@@ -273,7 +275,7 @@
           "type": "coder_workspace",
           "name": "me",
           "provider_config_key": "coder",
-          "schema_version": 1
+          "schema_version": 0
         },
         {
           "address": "data.coder_workspace_owner.me",

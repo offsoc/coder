@@ -130,7 +130,7 @@
             "type": "coder_parameter",
             "name": "instance_type",
             "provider_name": "registry.terraform.io/coder/coder",
-            "schema_version": 1,
+            "schema_version": 0,
             "values": {
               "default": "t3.micro",
               "description": "Instance type",
@@ -159,9 +159,11 @@
             "type": "coder_workspace_preset",
             "name": "development",
             "provider_name": "registry.terraform.io/coder/coder",
-            "schema_version": 1,
+            "schema_version": 0,
             "values": {
               "default": true,
+              "description": null,
+              "icon": null,
               "id": "development",
               "name": "development",
               "parameters": {
@@ -191,9 +193,11 @@
             "type": "coder_workspace_preset",
             "name": "production",
             "provider_name": "registry.terraform.io/coder/coder",
-            "schema_version": 1,
+            "schema_version": 0,
             "values": {
               "default": true,
+              "description": null,
+              "icon": null,
               "id": "production",
               "name": "production",
               "parameters": {
@@ -282,7 +286,7 @@
               "constant_value": "string"
             }
           },
-          "schema_version": 1
+          "schema_version": 0
         },
         {
           "address": "data.coder_workspace_preset.development",
@@ -311,7 +315,7 @@
               }
             ]
           },
-          "schema_version": 1
+          "schema_version": 0
         },
         {
           "address": "data.coder_workspace_preset.production",
@@ -340,7 +344,7 @@
               }
             ]
           },
-          "schema_version": 1
+          "schema_version": 0
         }
       ]
     }

@@ -10,7 +10,7 @@
           "type": "coder_parameter",
           "name": "sample",
           "provider_name": "registry.terraform.io/coder/coder",
-          "schema_version": 1,
+          "schema_version": 0,
           "values": {
             "default": "ok",
             "description": "blah blah",
@@ -39,9 +39,11 @@
           "type": "coder_workspace_preset",
           "name": "MyFirstProject",
           "provider_name": "registry.terraform.io/coder/coder",
-          "schema_version": 1,
+          "schema_version": 0,
           "values": {
             "default": false,
+            "description": null,
+            "icon": null,
             "id": "My First Project",
             "name": "My First Project",
             "parameters": {
@@ -163,7 +165,7 @@
               "type": "coder_parameter",
               "name": "first_parameter_from_module",
               "provider_name": "registry.terraform.io/coder/coder",
-              "schema_version": 1,
+              "schema_version": 0,
               "values": {
                 "default": "abcdef",
                 "description": "First parameter from module",
@@ -192,7 +194,7 @@
               "type": "coder_parameter",
               "name": "second_parameter_from_module",
               "provider_name": "registry.terraform.io/coder/coder",
-              "schema_version": 1,
+              "schema_version": 0,
               "values": {
                 "default": "ghijkl",
                 "description": "Second parameter from module",
@@ -226,7 +228,7 @@
                   "type": "coder_parameter",
                   "name": "child_first_parameter_from_module",
                   "provider_name": "registry.terraform.io/coder/coder",
-                  "schema_version": 1,
+                  "schema_version": 0,
                   "values": {
                     "default": "abcdef",
                     "description": "First parameter from child module",
@@ -255,7 +257,7 @@
                   "type": "coder_parameter",
                   "name": "child_second_parameter_from_module",
                   "provider_name": "registry.terraform.io/coder/coder",
-                  "schema_version": 1,
+                  "schema_version": 0,
                   "values": {
                     "default": "ghijkl",
                     "description": "Second parameter from child module",
