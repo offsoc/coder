@@ -334,8 +334,8 @@ func (rpty *screenReconnectingPTY) sendCommand(ctx context.Context, command stri
 		var stdout bytes.Buffer
 		//nolint:gosec
 		cmd := rpty.execer.CommandContext(ctx, "screen",
-			// -x targets an attached session.
-			"-x", rpty.id,
+			// -S selects the session by name (works for attached or detached).
+			"-S", rpty.id,
 			// -c is the flag for the config file.
 			"-c", rpty.configFile,
 			// -X runs a command in the matching session.
